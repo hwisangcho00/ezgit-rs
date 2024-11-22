@@ -4,7 +4,7 @@ use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::widgets::{Block, Borders, List, ListItem};
-use ezgit_rs::git_commands;
+use ezgit_rs::{git_commands, input};
 
 fn main() -> Result<(), io::Error> {
     // Setup terminal
@@ -15,8 +15,8 @@ fn main() -> Result<(), io::Error> {
     let mut terminal = Terminal::new(backend)?;
 
 
-    let commit_log = git_commands::get_commit_log(".");
-    
+    let mut commit_log = git_commands::get_commit_log(".");
+    let mut selected_index = 0;
     // Main event loop
     loop {
         // Draw UI
@@ -52,13 +52,26 @@ fn main() -> Result<(), io::Error> {
             f.render_widget(input_prompt, chunks[2]);
         })?;
 
-        // Handle input (Quit with 'q')
-        if crossterm::event::poll(std::time::Duration::from_millis(200))? {
-            if let crossterm::event::Event::Key(key) = crossterm::event::read()? {
-                if let crossterm::event::KeyCode::Char('q') = key.code {
-                    break;
+        // Handle input
+        match input::handle_user_input()? {
+            Some(input::Action::Quit) => break, // Exit loop on 'q'
+            Some(input::Action::Refresh) => {
+                commit_log = git_commands::get_commit_log("."); // Refresh commit log
+            }
+            Some(input::Action::NavigateUp) => {
+                if selected_index > 0 {
+                    selected_index -= 1;
                 }
             }
+            Some(input::Action::NavigateDown) => {
+                if selected_index < commit_log.len() - 1 {
+                    selected_index += 1;
+                }
+            }
+            Some(input::Action::Select) => {
+                println!("Selected item: {}", commit_log[selected_index]);
+            }
+            None => {}
         }
     }
 
