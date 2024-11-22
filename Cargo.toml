@@ -2,7 +2,11 @@
 name = "ezgit-rs"
 version = "0.1.0"
 edition = "2021"
-
 authors = ["Joseph Cho <hwisang@seas.upenn.edu>"]
 license = "MIT"
 repository = "https://github.com/hwisangcho00/ezgit-rs"
+
+[dependencies]
+ratatui = "0.20"
+crossterm = "0.26"
+git2 = "0.19.0"
