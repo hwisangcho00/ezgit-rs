@@ -1,0 +1,57 @@
+pub enum Panel {
+    CommitLog,
+    Branches,
+}
+
+pub struct AppState {
+    pub selected_index: usize,       // Selected commit index
+    pub commit_log: Vec<String>,     // Commit log
+    pub branches: Vec<String>,       // Branch list
+    pub selected_branch: usize,      // Selected branch index
+    pub focused_panel: Panel,        // Currently focused panel
+}
+
+impl AppState {
+    pub fn new(commit_log: Vec<String>, branches: Vec<String>) -> Self {
+        Self {
+            selected_index: 0,
+            commit_log,
+            branches,
+            selected_branch: 0,
+            focused_panel: Panel::CommitLog,
+        }
+    }
+
+    pub fn focus_next_panel(&mut self) {
+        self.focused_panel = match self.focused_panel {
+            Panel::CommitLog => Panel::Branches,
+            Panel::Branches => Panel::CommitLog,
+        };
+    }
+
+    // Move selection up
+    pub fn select_previous(&mut self) {
+        if self.selected_index > 0 {
+            self.selected_index -= 1;
+        }
+    }
+
+    // Move selection down
+    pub fn select_next(&mut self) {
+        if self.selected_index < self.commit_log.len() - 1 {
+            self.selected_index += 1;
+        }
+    }
+
+    pub fn select_previous_branch(&mut self) {
+        if self.selected_branch > 0 {
+            self.selected_branch -= 1;
+        }
+    }
+
+    pub fn select_next_branch(&mut self) {
+        if self.selected_branch < self.branches.len() - 1 {
+            self.selected_branch += 1;
+        }
+    }
+}
