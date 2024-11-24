@@ -9,6 +9,7 @@ pub struct AppState {
     pub branches: Vec<String>,       // Branch list
     pub selected_branch: usize,      // Selected branch index
     pub focused_panel: Panel,        // Currently focused panel
+    pub selected_commit_details: Option<String>,
 }
 
 impl AppState {
@@ -19,6 +20,7 @@ impl AppState {
             branches,
             selected_branch: 0,
             focused_panel: Panel::CommitLog,
+            selected_commit_details: None,
         }
     }
 
@@ -54,4 +56,13 @@ impl AppState {
             self.selected_branch += 1;
         }
     }
+
+    pub fn set_selected_commit_details(&mut self, details: String) {
+        self.selected_commit_details = Some(details);
+    }
+
+    pub fn clear_selected_commit_details(&mut self) {
+        self.selected_commit_details = None;
+    }
+
 }

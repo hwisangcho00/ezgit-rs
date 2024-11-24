@@ -3,7 +3,7 @@ use crossterm::{execute, terminal, ExecutableCommand};
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::widgets::{Block, Borders, List, ListItem};
+use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 use ratatui::style::{Style, Color};
 use ezgit_rs::{git_commands, input};
 use ezgit_rs::app_state::{AppState, Panel};
@@ -104,10 +104,17 @@ fn main() -> Result<(), io::Error> {
             f.render_widget(branch_list, chunks[1]);
 
 
-            let input_prompt = Block::default()
-                .title("Input Prompt")
-                .borders(Borders::ALL);
-            f.render_widget(input_prompt, chunks[2]);
+            // Conditionally Render Input Prompt or Commit Details
+            if let Some(details) = &app_state.selected_commit_details {
+                let commit_details = Paragraph::new(details.clone())
+                    .block(Block::default().title("Commit Details").borders(Borders::ALL));
+                f.render_widget(commit_details, chunks[2]);
+            } else {
+                let input_prompt = Block::default()
+                    .title("Input Prompt")
+                    .borders(Borders::ALL);
+                f.render_widget(input_prompt, chunks[2]);
+            }
         })?;
 
         if handle_event(&mut app_state)? {

@@ -7,6 +7,7 @@ pub enum Action {
     NavigateDown,
     Select,
     SwitchPanel,
+    Deselect,
 }
 
 pub fn handle_user_input() -> Result<Option<Action>, std::io::Error> {
@@ -19,6 +20,7 @@ pub fn handle_user_input() -> Result<Option<Action>, std::io::Error> {
                 KeyCode::Down => Some(Action::NavigateDown),
                 KeyCode::Enter => Some(Action::Select),
                 KeyCode::Tab => Some(Action::SwitchPanel), // Switch between Commit Log and Branches
+                KeyCode::Esc => Some(Action::Deselect),
                 _ => None,
             });
         }

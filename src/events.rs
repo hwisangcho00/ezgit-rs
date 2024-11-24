@@ -1,5 +1,5 @@
 use crate::app_state::{AppState, Panel};
-use crate::input;
+use crate::{git_commands, input};
 
 pub fn handle_event(app_state: &mut AppState) -> Result<bool, std::io::Error> {
     match input::handle_user_input()? {
@@ -14,15 +14,23 @@ pub fn handle_event(app_state: &mut AppState) -> Result<bool, std::io::Error> {
         },
         Some(input::Action::Select) => match app_state.focused_panel {
             Panel::CommitLog => {
-                println!(
-                    "Selected commit: {}",
-                    app_state.commit_log[app_state.selected_index]
-                );
+                let selected_commit_hash = &app_state.commit_log[app_state.selected_index];
+                print!("Selected commit hash: {}", selected_commit_hash);
+                
+                match git_commands::get_commit_details(".", selected_commit_hash) {
+                    Ok(details) => {
+                        app_state.set_selected_commit_details(details);
+                    },
+                    Err(err) => {
+                        app_state.set_selected_commit_details(err);
+                    }
+
+                }
             }
             Panel::Branches => {
                 let selected_branch = &app_state.branches[app_state.selected_branch];
                 if let Err(e) = crate::git_commands::checkout_branch(".", selected_branch) {
-                    println!("Error: {}", e);
+                    eprintln!("Error: {}", e);
                 } else {
                     app_state.commit_log = crate::git_commands::get_commit_log(".");
                 }
@@ -36,6 +44,9 @@ pub fn handle_event(app_state: &mut AppState) -> Result<bool, std::io::Error> {
             app_state.branches = crate::git_commands::get_branches(".");
             app_state.selected_index = 0;
             app_state.selected_branch = 0;
+        },
+        Some(input::Action::Deselect) => {
+            app_state.clear_selected_commit_details();
         }
         _ => {}
     }
