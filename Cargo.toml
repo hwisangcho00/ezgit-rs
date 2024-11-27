@@ -12,4 +12,5 @@ crossterm = "0.28.1"
 git2 = "0.19.0"
 log = "0.4"
 simplelog = "0.12"
+dotenv = "0.15"
 

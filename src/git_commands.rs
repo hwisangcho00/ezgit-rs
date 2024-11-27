@@ -1,8 +1,10 @@
-use std::{f32::consts::E, sync::Arc};
+use git2::{BranchType, Repository, Cred, PushOptions, RemoteCallbacks};
 
-use git2::{BranchType, Repository};
+use log::debug;
 
-use log::{debug, info, error};
+use std::env;
+use dotenv::dotenv;
+
 
 
 pub fn get_commit_log(repo_path: &str) -> Vec<String> {
@@ -65,6 +67,11 @@ pub fn get_commit_details(repo_path: &str, commit_hash: &str) -> Result<String, 
 }
 
 pub fn commit_and_push(repo_path: &str, commit_message: &str) -> Result<(), String> {
+    // Load environment variables
+    dotenv().ok();
+    let username = env::var("GIT_USERNAME").map_err(|_| "GIT_USERNAME not set".to_string())?;
+    let password = env::var("GIT_PASSWORD").map_err(|_| "GIT_PASSWORD not set".to_string())?;
+   
     // Open the repository
     let repo = Repository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
@@ -83,10 +90,21 @@ pub fn commit_and_push(repo_path: &str, commit_message: &str) -> Result<(), Stri
     repo.commit(Some("HEAD"), &signature, &signature, commit_message, &tree, &[&parent_commit])
         .map_err(|e| format!("Failed to commit changes: {}", e))?;
 
-    // Push changes
+    // Set up authentication callbacks
+    let mut callbacks = RemoteCallbacks::new();
+    callbacks.credentials(move |_url, username_from_url, _allowed_types| {
+        Cred::userpass_plaintext(
+            username_from_url.unwrap_or(&username),
+            &password,
+        )
+    });
+
+    // Push changes with authentication
     let mut remote = repo.find_remote("origin").map_err(|e| format!("Failed to find remote: {}", e))?;
-    remote.connect(git2::Direction::Push).map_err(|e| format!("Failed to connect to remote: {}", e))?;
-    remote.push(&["refs/heads/main:refs/heads/main"], None)
+    let mut push_options = PushOptions::new();
+    push_options.remote_callbacks(callbacks);
+
+    remote.push(&["refs/heads/main:refs/heads/main"], Some(&mut push_options))
         .map_err(|e| format!("Failed to push changes: {}", e))?;
 
     Ok(())
