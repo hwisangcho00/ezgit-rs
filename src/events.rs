@@ -22,10 +22,19 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
             }
         }
         Some(input::Action::Confirm) => {
-            if let Some(commit_state) = &app_state.commit_state {
-                if commit_state.message.trim().is_empty() {
-                    debug!("Cannot confirm: commit message is empty");
-                } else {
+            match app_state.ui_state {
+                UIState::CommitMessage => {
+                    // Transition to ConfirmCommit state after entering commit message
+                    if let Some(commit_state) = &app_state.commit_state {
+                        if commit_state.message.trim().is_empty() {
+                            debug!("Cannot confirm: commit message is empty");
+                        } else {
+                            app_state.ui_state = UIState::ConfirmCommit; // Move to confirmation state
+                            debug!("Transitioned to ConfirmCommit state");
+                        }
+                    }
+                }
+                UIState::ConfirmCommit => {
                     // Perform the commit and push operation
                     if let Some(commit_state) = &app_state.commit_state {
                         match git_commands::commit_and_push(".", &commit_state.message) {
@@ -43,8 +52,12 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
                         }
                     }
                 }
+                _ => {
+                    debug!("Confirm action ignored in current UIState");
+                }
             }
-        }
+        },
+        
         Some(input::Action::Cancel) => {
             app_state.ui_state = UIState::Normal;
             app_state.commit_state = None;
