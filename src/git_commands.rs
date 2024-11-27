@@ -67,24 +67,17 @@ pub fn get_commit_details(repo_path: &str, commit_hash: &str) -> Result<String, 
 }
 
 pub fn commit_and_push(repo_path: &str, commit_message: &str) -> Result<(), String> {
-    // Load environment variables
     dotenv().ok();
     let username = env::var("GIT_USERNAME").map_err(|_| "GIT_USERNAME not set".to_string())?;
-    let password = env::var("GIT_PASSWORD").map_err(|_| "GIT_PASSWORD not set".to_string())?;
-   
-    debug!("username: {}", username);
-    debug!("password: {}", password);
+    let token = env::var("GIT_PASSWORD").map_err(|_| "GIT_PASSWORD not set".to_string())?; // Use the token here
 
-    // Open the repository
     let repo = Repository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
-    // Stage all changes (equivalent to `git add .`)
     let mut index = repo.index().map_err(|e| format!("Failed to get repository index: {}", e))?;
     index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)
         .map_err(|e| format!("Failed to stage changes: {}", e))?;
     index.write().map_err(|e| format!("Failed to write index: {}", e))?;
 
-    // Create the commit
     let oid = index.write_tree().map_err(|e| format!("Failed to write tree: {}", e))?;
     let tree = repo.find_tree(oid).map_err(|e| format!("Failed to find tree: {}", e))?;
     let head = repo.head().map_err(|e| format!("Failed to get HEAD: {}", e))?;
@@ -93,23 +86,20 @@ pub fn commit_and_push(repo_path: &str, commit_message: &str) -> Result<(), Stri
     repo.commit(Some("HEAD"), &signature, &signature, commit_message, &tree, &[&parent_commit])
         .map_err(|e| format!("Failed to commit changes: {}", e))?;
 
-    // Set up authentication callbacks
     let mut callbacks = RemoteCallbacks::new();
     callbacks.credentials(move |_url, username_from_url, _allowed_types| {
         Cred::userpass_plaintext(
-            username_from_url.unwrap_or(&username),
-            &password,
+            username_from_url.unwrap_or(&username), // Use username from URL or fallback
+            &token,                                 // Use the PAT as the password
         )
     });
 
-    // Push changes with authentication
-    let mut remote = repo.find_remote("origin").map_err(|e| format!("Failed to find remote: {}", e))?;
     let mut push_options = PushOptions::new();
     push_options.remote_callbacks(callbacks);
 
+    let mut remote = repo.find_remote("origin").map_err(|e| format!("Failed to find remote: {}", e))?;
     remote.push(&["refs/heads/main:refs/heads/main"], Some(&mut push_options))
         .map_err(|e| format!("Failed to push changes: {}", e))?;
 
     Ok(())
-
 }
