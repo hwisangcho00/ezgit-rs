@@ -72,6 +72,9 @@ pub fn commit_and_push(repo_path: &str, commit_message: &str) -> Result<(), Stri
     let username = env::var("GIT_USERNAME").map_err(|_| "GIT_USERNAME not set".to_string())?;
     let password = env::var("GIT_PASSWORD").map_err(|_| "GIT_PASSWORD not set".to_string())?;
    
+    debug!("username: {}", username);
+    debug!("password: {}", password);
+
     // Open the repository
     let repo = Repository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
