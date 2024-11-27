@@ -64,3 +64,31 @@ pub fn get_commit_details(repo_path: &str, commit_hash: &str) -> Result<String, 
     Ok(details)
 }
 
+pub fn commit_and_push(repo_path: &str, commit_message: &str) -> Result<(), String> {
+    // Open the repository
+    let repo = Repository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
+
+    // Stage all changes (equivalent to `git add .`)
+    let mut index = repo.index().map_err(|e| format!("Failed to get repository index: {}", e))?;
+    index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)
+        .map_err(|e| format!("Failed to stage changes: {}", e))?;
+    index.write().map_err(|e| format!("Failed to write index: {}", e))?;
+
+    // Create the commit
+    let oid = index.write_tree().map_err(|e| format!("Failed to write tree: {}", e))?;
+    let tree = repo.find_tree(oid).map_err(|e| format!("Failed to find tree: {}", e))?;
+    let head = repo.head().map_err(|e| format!("Failed to get HEAD: {}", e))?;
+    let parent_commit = head.peel_to_commit().map_err(|e| format!("Failed to get parent commit: {}", e))?;
+    let signature = repo.signature().map_err(|e| format!("Failed to create signature: {}", e))?;
+    repo.commit(Some("HEAD"), &signature, &signature, commit_message, &tree, &[&parent_commit])
+        .map_err(|e| format!("Failed to commit changes: {}", e))?;
+
+    // Push changes
+    let mut remote = repo.find_remote("origin").map_err(|e| format!("Failed to find remote: {}", e))?;
+    remote.connect(git2::Direction::Push).map_err(|e| format!("Failed to connect to remote: {}", e))?;
+    remote.push(&["refs/heads/main:refs/heads/main"], None)
+        .map_err(|e| format!("Failed to push changes: {}", e))?;
+
+    Ok(())
+
+}

@@ -8,6 +8,7 @@ pub enum Action {
     Select,
     SwitchPanel,
     Deselect,
+    CommitWork,
 }
 
 pub fn handle_user_input() -> Result<Option<Action>, std::io::Error> {
@@ -21,6 +22,7 @@ pub fn handle_user_input() -> Result<Option<Action>, std::io::Error> {
                 KeyCode::Enter => Some(Action::Select),
                 KeyCode::Tab => Some(Action::SwitchPanel), // Switch between Commit Log and Branches
                 KeyCode::Esc => Some(Action::Deselect),
+                KeyCode::Char('c') => Some(Action::CommitWork),
                 _ => None,
             });
         }

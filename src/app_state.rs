@@ -3,6 +3,17 @@ pub enum Panel {
     Branches,
 }
 
+pub enum UIState {
+    Normal,
+    CommitMessage,
+    ConfirmCommit,
+
+}
+
+pub struct CommitState {
+    pub message: String,
+}
+
 pub struct AppState {
     pub selected_index: usize,       // Selected commit index
     pub commit_log: Vec<String>,     // Commit log
@@ -10,6 +21,8 @@ pub struct AppState {
     pub selected_branch: usize,      // Selected branch index
     pub focused_panel: Panel,        // Currently focused panel
     pub selected_commit_details: Option<String>,
+    pub ui_state: UIState,
+    pub commit_state: Option<CommitState>,
 }
 
 impl AppState {
@@ -21,6 +34,8 @@ impl AppState {
             selected_branch: 0,
             focused_panel: Panel::CommitLog,
             selected_commit_details: None,
+            ui_state: UIState::Normal,
+            commit_state: None,
         }
     }
 
