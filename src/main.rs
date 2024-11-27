@@ -8,8 +8,14 @@ use ratatui::style::{Style, Color};
 use ezgit_rs::{git_commands, input};
 use ezgit_rs::app_state::{AppState, Panel};
 use ezgit_rs::events::handle_event;
+use ezgit_rs::logger::Logger;
+use log::{info, debug, error};
 
 fn main() -> Result<(), io::Error> {
+    // Initialize the logger
+    Logger::init("debug.log", log::LevelFilter::Debug);
+    info!("Logger initialized");
+
     // Setup terminal
     terminal::enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -29,9 +35,9 @@ fn main() -> Result<(), io::Error> {
                 .direction(Direction::Vertical)
                 .margin(1)
                 .constraints([
-                    Constraint::Percentage(70), // Commit Log
-                    Constraint::Percentage(20), // Branch List
-                    Constraint::Percentage(10), // Input Prompt
+                    Constraint::Percentage(50), // Commit Log
+                    Constraint::Percentage(30), // Branch List
+                    Constraint::Percentage(20), // Input Prompt
                 ])
                 .split(f.area());
 

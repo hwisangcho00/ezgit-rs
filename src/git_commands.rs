@@ -2,6 +2,9 @@ use std::{f32::consts::E, sync::Arc};
 
 use git2::{BranchType, Repository};
 
+use log::{debug, info, error};
+
+
 pub fn get_commit_log(repo_path: &str) -> Vec<String> {
     let repo = Repository::open(repo_path).expect("Failed to open repository");
     let mut revwalk = repo.revwalk().expect("Failed to create revwalk");
@@ -45,20 +48,9 @@ pub fn checkout_branch(repo_path: &str, branch_name: &str) -> Result<(), String>
 }
 
 pub fn get_commit_details(repo_path: &str, commit_hash: &str) -> Result<String, String> {
-    // Open repository
-    let repo = Repository::open(repo_path)
-    .expect("Failed to open repository. Ensure the repo path is correct.");
-
-    // Parse the commit hash
-    let oid = repo
-    .revparse_single(commit_hash.trim())
-    .expect("Failed to parse commit hash. Ensure the commit exists.")
-    .id();
-
-    // Find the commit by OID
-    let commit = repo
-    .find_commit(oid)
-    .expect("Failed to find commit. Ensure the commit hash is valid.");
+    let repo = Repository::open(repo_path).map_err(|e| e.to_string())?;
+    let oid = repo.revparse_single(commit_hash).map_err(|e| e.to_string())?.id();
+    let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
 
     let details = format!(
         "Commit Hash: {}\nAuthor: {} <{}>\nDate: {}\n\nMessage:\n{}",
@@ -70,6 +62,5 @@ pub fn get_commit_details(repo_path: &str, commit_hash: &str) -> Result<String, 
     );
 
     Ok(details)
-
 }
 
