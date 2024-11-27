@@ -22,7 +22,28 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
             }
         }
         Some(input::Action::Confirm) => {
-            app_state.ui_state = UIState::ConfirmCommit; // Transition to confirmation state
+            if let Some(commit_state) = &app_state.commit_state {
+                if commit_state.message.trim().is_empty() {
+                    debug!("Cannot confirm: commit message is empty");
+                } else {
+                    // Perform the commit and push operation
+                    if let Some(commit_state) = &app_state.commit_state {
+                        match git_commands::commit_and_push(".", &commit_state.message) {
+                            Ok(_) => {
+                                app_state.ui_state = UIState::Normal; // Reset to normal state
+                                app_state.input_mode = InputMode::Command; // Back to command mode
+                                app_state.commit_log = git_commands::get_commit_log("."); // Refresh commit log
+                                debug!("Changes committed and pushed successfully.");
+                            }
+                            Err(err) => {
+                                debug!("Error during commit and push: {}", err);
+                                app_state.ui_state = UIState::Normal; // Reset on failure
+                                app_state.input_mode = InputMode::Command;
+                            }
+                        }
+                    }
+                }
+            }
         }
         Some(input::Action::Cancel) => {
             app_state.ui_state = UIState::Normal;
