@@ -132,11 +132,24 @@ fn main() -> Result<(), io::Error> {
                     let chunks = Layout::default()
                         .direction(Direction::Vertical)
                         .margin(1)
-                        .constraints([Constraint::Percentage(100)])
+                        .constraints([Constraint::Percentage(100)]) // Full area for input
                         .split(f.area());
-                    let input_prompt = Block::default()
-                        .title("Enter Commit Message (Press Enter to Confirm)")
-                        .borders(Borders::ALL);
+
+                    // Get the current commit message from CommitState
+                    let commit_message = app_state
+                        .commit_state
+                        .as_ref()
+                        .map_or("", |state| &state.message);
+
+                    // Create a paragraph to display the message
+                    let input_prompt = Paragraph::new(commit_message)
+                        .block(
+                            Block::default()
+                                .title("Enter Commit Message (Press Enter to Confirm, Esc to Cancel)")
+                                .borders(Borders::ALL),
+                        );
+
+                    // Render the input prompt
                     f.render_widget(input_prompt, chunks[0]);
                 }
                 UIState::ConfirmCommit => {

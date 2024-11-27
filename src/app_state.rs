@@ -14,6 +14,11 @@ pub struct CommitState {
     pub message: String,
 }
 
+pub enum InputMode {
+    Command,  // Default mode for handling commands
+    Text,     // Mode for handling text input
+}
+
 pub struct AppState {
     pub selected_index: usize,       // Selected commit index
     pub commit_log: Vec<String>,     // Commit log
@@ -23,6 +28,7 @@ pub struct AppState {
     pub selected_commit_details: Option<String>,
     pub ui_state: UIState,
     pub commit_state: Option<CommitState>,
+    pub input_mode: InputMode,
 }
 
 impl AppState {
@@ -36,6 +42,7 @@ impl AppState {
             selected_commit_details: None,
             ui_state: UIState::Normal,
             commit_state: None,
+            input_mode: InputMode::Command,
         }
     }
 

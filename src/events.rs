@@ -1,9 +1,41 @@
-use crate::app_state::{AppState, Panel, UIState, CommitState};
+use crate::app_state::{AppState, Panel, UIState, CommitState, InputMode};
 use crate::{git_commands, input};
 use log::debug;
 
 pub fn handle_event(app_state: &mut AppState) -> Result<bool, std::io::Error> {
-    match input::handle_user_input()? {
+    match app_state.input_mode {
+        InputMode::Command => handle_command_mode(app_state),
+        InputMode::Text => handle_text_mode(app_state),
+    }
+}
+
+fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
+    match input::handle_user_input(true)? {
+        Some(input::Action::TextInput(c)) => {
+            if let Some(commit_state) = &mut app_state.commit_state {
+                commit_state.message.push(c);
+            }
+        }
+        Some(input::Action::Backspace) => {
+            if let Some(commit_state) = &mut app_state.commit_state {
+                commit_state.message.pop();
+            }
+        }
+        Some(input::Action::Confirm) => {
+            app_state.ui_state = UIState::ConfirmCommit; // Transition to confirmation state
+        }
+        Some(input::Action::Cancel) => {
+            app_state.ui_state = UIState::Normal;
+            app_state.commit_state = None;
+            app_state.input_mode = InputMode::Command; // Switch back to Command Mode
+        }
+        _ => {}
+    }
+    Ok(false)
+}
+
+pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
+    match input::handle_user_input(false)? {
         Some(input::Action::Quit) => return Ok(true),
         Some(input::Action::NavigateUp) => match app_state.focused_panel {
             Panel::CommitLog => app_state.select_previous(),
@@ -76,6 +108,7 @@ pub fn handle_event(app_state: &mut AppState) -> Result<bool, std::io::Error> {
         Some(input::Action::CommitWork) => {
             app_state.ui_state = UIState::CommitMessage;
             app_state.commit_state = Some(CommitState { message: String::new() });
+            app_state.input_mode = InputMode::Text;
         }
 
         _ => {}
