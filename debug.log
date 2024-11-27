@@ -1,2 +1,0 @@
-03:08:42 [INFO] Logger initialized
-03:08:43 [DEBUG] (1) ezgit_rs::events: Error: Failed to checkout tree: 4 conflicts prevent checkout; class=Checkout (20); code=Conflict (-13)
