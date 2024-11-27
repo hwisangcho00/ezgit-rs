@@ -23,10 +23,10 @@ pub fn handle_event(app_state: &mut AppState) -> Result<bool, std::io::Error> {
                         Ok(_) => {
                             app_state.ui_state = UIState::Normal;
                             app_state.commit_log = git_commands::get_commit_log("."); // Refresh commit log
-                            println!("Changes committed and pushed successfully.");
+                            debug!("Changes committed and pushed successfully.");
                         }
                         Err(err) => {
-                            eprintln!("Error during commit and push: {}", err);
+                            debug!("Error during commit and push: {}", err);
                             app_state.ui_state = UIState::Normal;
                         }
                     }
