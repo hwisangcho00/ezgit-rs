@@ -39,8 +39,8 @@ fn main() -> Result<(), io::Error> {
                     .margin(1)
                     .constraints([
                         Constraint::Percentage(50), // Commit Log
-                        Constraint::Percentage(30), // Branch List
-                        Constraint::Percentage(20), // Input Prompt
+                        Constraint::Percentage(20), // Branch List
+                        Constraint::Percentage(30), // Input Prompt
                     ])
                     .split(f.area());
     
