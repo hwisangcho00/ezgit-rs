@@ -70,8 +70,17 @@ fn main() -> Result<(), io::Error> {
                         })
                         .collect();
 
-                    let commit_list = List::new(commit_items)
-                        .block(Block::default().title("Commit Log").borders(Borders::ALL));
+                    let commit_list = List::new(commit_items).block(
+                        Block::default()
+                            .title("Commit Log")
+                            .borders(Borders::ALL)
+                            .border_style(
+                                if matches!(app_state.focused_panel, Panel::CommitLog) {
+                                focused_style
+                            } else {
+                                unfocused_style
+                            }),
+                    );
 
                     f.render_widget(commit_list, chunks[0]);
         
