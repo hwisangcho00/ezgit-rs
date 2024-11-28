@@ -10,6 +10,7 @@ pub enum Action {
     Deselect,
     CommitWork,
 
+    
     // Text input actions
     TextInput(char), // Character input for text mode
     Backspace,       // Handle backspace during text input
