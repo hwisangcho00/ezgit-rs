@@ -9,6 +9,7 @@ pub enum UIState {
     ConfirmCommit,
     ConfirmQuit,
     CommitDetails,
+    CreateBranch,
 
 }
 
@@ -33,6 +34,7 @@ pub struct AppState {
     pub ui_state: UIState,
     pub commit_state: Option<CommitState>,
     pub input_mode: InputMode,
+    pub branch_name: String,
 }
 
 impl AppState {
@@ -49,6 +51,7 @@ impl AppState {
             ui_state: UIState::Normal,
             commit_state: None,
             input_mode: InputMode::Command,
+            branch_name: String::new(),
         }
     }
 

@@ -195,6 +195,21 @@ fn main() -> Result<(), io::Error> {
                         .wrap(ratatui::widgets::Wrap { trim: false });
                 
                     f.render_widget(details_paragraph, chunks[0]);
+                },
+                UIState::CreateBranch => {
+                    let chunks = Layout::default()
+                        .direction(Direction::Vertical)
+                        .margin(1)
+                        .constraints([Constraint::Percentage(100)])
+                        .split(f.area());
+                
+                    let input = app_state.branch_name.clone();
+                    let prompt = format!("Enter new branch name: {}", input);
+                
+                    let branch_prompt = Paragraph::new(prompt)
+                        .block(Block::default().title("Create Branch").borders(Borders::ALL));
+                
+                    f.render_widget(branch_prompt, chunks[0]);
                 }
             }
         })?;

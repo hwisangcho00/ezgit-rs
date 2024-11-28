@@ -102,3 +102,29 @@ pub fn commit_and_push(repo_path: &str, commit_message: &str) -> Result<(), Stri
 
     Ok(())
 }
+
+pub fn create_and_switch_branch(repo_path: &str, branch_name: &str) -> Result<(), String> {
+    let repo = Repository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
+
+    // Ensure branch name is valid
+    if branch_name.trim().is_empty() {
+        return Err("Branch name cannot be empty".to_string());
+    }
+
+    // Get the current HEAD commit
+    let head_commit = repo.head()
+        .and_then(|head| head.peel_to_commit())
+        .map_err(|e| format!("Failed to get HEAD commit: {}", e))?;
+
+    // Create a new branch
+    repo.branch(branch_name, &head_commit, false)
+        .map_err(|e| format!("Failed to create branch: {}", e))?;
+
+    // Switch to the new branch
+    let mut checkout_builder = git2::build::CheckoutBuilder::new();
+    repo.set_head(&format!("refs/heads/{}", branch_name))
+        .and_then(|_| repo.checkout_head(Some(&mut checkout_builder)))
+        .map_err(|e| format!("Failed to switch to branch: {}", e))?;
+
+    Ok(())
+}

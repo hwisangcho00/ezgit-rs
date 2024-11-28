@@ -9,6 +9,7 @@ pub enum Action {
     SwitchPanel,
     Deselect,
     CommitWork,
+    CreateBranch,
 
     // Text input actions
     TextInput(char), // Character input for text mode
@@ -39,6 +40,7 @@ pub fn handle_user_input(is_text_mode: bool) -> Result<Option<Action>, std::io::
                     KeyCode::Tab => Some(Action::SwitchPanel), // Switch between Commit Log and Branches
                     KeyCode::Esc => Some(Action::Deselect),
                     KeyCode::Char('c') => Some(Action::CommitWork),
+                    KeyCode::Char('b') => Some(Action::CreateBranch),
                     _ => None,
                 });
             }
