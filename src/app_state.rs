@@ -8,6 +8,7 @@ pub enum UIState {
     CommitMessage,
     ConfirmCommit,
     ConfirmQuit,
+    CommitDetails,
 
 }
 

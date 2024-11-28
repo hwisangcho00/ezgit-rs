@@ -1,6 +1,6 @@
 use git2::{BranchType, Repository, Cred, PushOptions, RemoteCallbacks};
 
-use log::debug;
+// use log::debug;
 
 use std::env;
 use dotenv::dotenv;

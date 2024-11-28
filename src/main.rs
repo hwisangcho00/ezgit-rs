@@ -3,13 +3,13 @@ use crossterm::{execute, terminal, ExecutableCommand};
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
+use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
 use ratatui::style::{Style, Color};
-use ezgit_rs::{git_commands, input};
+use ezgit_rs::git_commands;
 use ezgit_rs::app_state::{AppState, Panel, UIState};
 use ezgit_rs::events::handle_event;
 use ezgit_rs::logger::Logger;
-use log::{info, debug, error};
+use log::info;
 
 fn main() -> Result<(), io::Error> {
     // Initialize the logger
@@ -39,92 +39,96 @@ fn main() -> Result<(), io::Error> {
                     .margin(1)
                     .constraints([
                         Constraint::Percentage(50), // Commit Log
-                        Constraint::Percentage(20), // Branch List
-                        Constraint::Percentage(30), // Input Prompt
+                        Constraint::Percentage(30), // Branch List
+                        Constraint::Percentage(20), // Input Prompt
                     ])
                     .split(f.area());
     
     
-                // Style for focused and unfocused panels
-                let focused_style = Style::default().fg(Color::Yellow);
-                let unfocused_style = Style::default();
-    
-                // Render Commit Log
-                let commit_items: Vec<ListItem> = app_state
-                .commit_log
-                .iter()
-                .enumerate()
-                .map(|(i, commit)| {
-                    if i == app_state.selected_index {
-                        ListItem::new(commit.clone())
-                            .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow))
-                    } else {
-                        ListItem::new(commit.clone())
-                    }
-                })
-                .collect();
-    
-                let commit_list = List::new(commit_items)
-                    .block(
-                        Block::default()
-                            .title("Commit Log")
-                            .borders(Borders::ALL)
-                            .border_style(
-                                if matches!(app_state.focused_panel, Panel::CommitLog) {
-                                    focused_style
-                                } else {
-                                    unfocused_style
-                                },
-                            ),
-                    );
-    
-                f.render_widget(commit_list, chunks[0]);
-    
-    
-                // Render Branch List
-                let branch_items: Vec<ListItem> = app_state
-                    .branches
+                    // Style for focused and unfocused panels
+                    let focused_style = Style::default().fg(Color::Yellow);
+                    let unfocused_style = Style::default();
+        
+                    // Render Commit Log
+                    let commit_items: Vec<ListItem> = app_state
+                    .commit_log
                     .iter()
                     .enumerate()
-                    .map(|(i, branch)| {
-                        if i == app_state.selected_branch {
-                            ListItem::new(branch.clone())
-                                .style(ratatui::style::Style::default().fg(ratatui::style::Color::Cyan))
+                    .map(|(i, commit)| {
+                        if i == app_state.selected_index {
+                            ListItem::new(commit.clone())
+                                .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow))
                         } else {
-                            ListItem::new(branch.clone())
+                            ListItem::new(commit.clone())
                         }
                     })
                     .collect();
-    
-                // Branch List
-                let branch_list = List::new(branch_items)
-                    .block(
-                        Block::default()
-                            .title("Branches")
-                            .borders(Borders::ALL)
-                            .border_style(
-                                if matches!(app_state.focused_panel, Panel::Branches) {
-                                    focused_style
-                                } else {
-                                    unfocused_style
-                                },
-                            ),
-                    );
-    
-                f.render_widget(branch_list, chunks[1]);
-    
-    
-                // Conditionally Render Input Prompt or Commit Details
-                if let Some(details) = &app_state.selected_commit_details {
-                    let commit_details = Paragraph::new(details.clone())
-                        .block(Block::default().title("Commit Details").borders(Borders::ALL));
-                    f.render_widget(commit_details, chunks[2]);
-                } else {
-                    let input_prompt = Block::default()
-                        .title("Input Prompt")
-                        .borders(Borders::ALL);
-                    f.render_widget(input_prompt, chunks[2]);
-                }
+        
+                    let commit_list = List::new(commit_items)
+                        .block(
+                            Block::default()
+                                .title("Commit Log")
+                                .borders(Borders::ALL)
+                                .border_style(
+                                    if matches!(app_state.focused_panel, Panel::CommitLog) {
+                                        focused_style
+                                    } else {
+                                        unfocused_style
+                                    },
+                                ),
+                        );
+        
+                    f.render_widget(commit_list, chunks[0]);
+        
+        
+                    // Render Branch List
+                    let branch_items: Vec<ListItem> = app_state
+                        .branches
+                        .iter()
+                        .enumerate()
+                        .map(|(i, branch)| {
+                            if i == app_state.selected_branch {
+                                ListItem::new(branch.clone())
+                                    .style(ratatui::style::Style::default().fg(ratatui::style::Color::Cyan))
+                            } else {
+                                ListItem::new(branch.clone())
+                            }
+                        })
+                        .collect();
+        
+                    // Branch List
+                    let branch_list = List::new(branch_items)
+                        .block(
+                            Block::default()
+                                .title("Branches")
+                                .borders(Borders::ALL)
+                                .border_style(
+                                    if matches!(app_state.focused_panel, Panel::Branches) {
+                                        focused_style
+                                    } else {
+                                        unfocused_style
+                                    },
+                                ),
+                        );
+        
+                    f.render_widget(branch_list, chunks[1]);
+        
+        
+                    let key_guide_text = vec![
+                        "  - q: Quit",
+                        "  - Esc: Cancel or return to previous screen",
+                        "  - Enter: Select or confirm action",
+                        "  - Tab: Switch panels",
+                        "  - ↑/↓: Navigate",
+                        "  - c: Start commit workflow",
+                        "  - r: Refresh commit log and branches",
+                    ];
+                    
+                    let key_guide = Paragraph::new(key_guide_text.join("\n"))
+                        .block(Block::default().title("Key Guide").borders(Borders::ALL))
+                        .wrap(Wrap { trim: false });
+                    
+                    f.render_widget(key_guide, chunks[2]);
                     
                 },
 
@@ -170,13 +174,32 @@ fn main() -> Result<(), io::Error> {
                         .direction(Direction::Vertical)
                         .margin(1)
                         .constraints([Constraint::Percentage(100)])
-                        .split(f.size());
+                        .split(f.area());
                 
                     let quit_prompt = Block::default()
                         .title("Are you sure you want to quit? (Press Enter to Confirm, Esc to Cancel)")
                         .borders(Borders::ALL);
                 
                     f.render_widget(quit_prompt, chunks[0]);
+                },
+                UIState::CommitDetails => {
+                    let chunks = Layout::default()
+                        .direction(Direction::Vertical)
+                        .margin(1)
+                        .constraints([Constraint::Percentage(100)])
+                        .split(f.area());
+                
+                    let details = app_state.selected_commit_details.as_deref().unwrap_or("No details available");
+                
+                    let details_widget = Block::default()
+                        .title("Commit Details (Press Esc to Return)")
+                        .borders(Borders::ALL);
+                
+                    let details_paragraph = ratatui::widgets::Paragraph::new(details)
+                        .block(details_widget)
+                        .wrap(ratatui::widgets::Wrap { trim: false });
+                
+                    f.render_widget(details_paragraph, chunks[0]);
                 }
             }
         })?;

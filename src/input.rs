@@ -10,13 +10,11 @@ pub enum Action {
     Deselect,
     CommitWork,
 
-    
     // Text input actions
     TextInput(char), // Character input for text mode
     Backspace,       // Handle backspace during text input
     Confirm,         // Confirm (e.g., Enter key) during text input
     Cancel,          // Cancel (e.g., Escape key) during text input
-    
 }
 
 pub fn handle_user_input(is_text_mode: bool) -> Result<Option<Action>, std::io::Error> {

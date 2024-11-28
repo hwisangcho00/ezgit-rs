@@ -114,15 +114,16 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
 
                     Panel::CommitLog => {
                         let selected_commit = &app_state.commit_log[app_state.selected_index];
-                        
                         let selected_commit_hash = &selected_commit.split(":").next().unwrap_or("");
         
                         match git_commands::get_commit_details(".", selected_commit_hash) {
                             Ok(details) => {
                                 app_state.set_selected_commit_details(details);
+                                app_state.ui_state = UIState::CommitDetails; // Transition to CommitDetails state
+                                debug!("Showing commit details");
                             },
                             Err(err) => {
-                                app_state.set_selected_commit_details(err);
+                                debug!("Error fetching commit details: {}", err);
                             }
         
                         }
@@ -137,6 +138,7 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                     }
                 }
             },
+            _ => {}
             
         },
         Some(input::Action::SwitchPanel) => {
@@ -158,7 +160,11 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 app_state.ui_state = UIState::Normal; // Cancel workflow
                 app_state.commit_state = None;
                 debug!("Workflow cancelled");
-            }
+            },
+             UIState::CommitDetails => {
+                app_state.ui_state = UIState::Normal; // Return to normal state
+                debug!("Exited commit details view");
+             },
             _ => {}
         },
 
