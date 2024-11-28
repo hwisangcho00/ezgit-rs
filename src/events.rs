@@ -70,7 +70,15 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
 
 pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
     match input::handle_user_input(false)? {
-        Some(input::Action::Quit) => return Ok(true),
+        Some(input::Action::Quit) => {
+            match app_state.ui_state {
+                UIState::Normal => {
+                    app_state.ui_state = UIState::ConfirmQuit; // Transition to ConfirmQuit state
+                    debug!("Transitioned to ConfirmQuit state");
+                },
+                _ => debug!("Quit action ignored in current UIState"),
+            }
+        },
         Some(input::Action::NavigateUp) => match app_state.focused_panel {
             Panel::CommitLog => app_state.select_previous(),
             Panel::Branches => app_state.select_previous_branch(),
@@ -80,6 +88,9 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
             Panel::Branches => app_state.select_next_branch(),
         },
         Some(input::Action::Select) => match app_state.ui_state {
+            UIState::ConfirmQuit => {
+                return Ok(true); // Exit the program
+            }
             UIState::CommitMessage => {
                 app_state.ui_state = UIState::ConfirmCommit;
             },
@@ -125,7 +136,8 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                         }
                     }
                 }
-            }
+            },
+            
         },
         Some(input::Action::SwitchPanel) => {
             app_state.focus_next_panel();
@@ -136,9 +148,20 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
             app_state.selected_index = 0;
             app_state.selected_branch = 0;
         },
-        Some(input::Action::Deselect) => {
-            app_state.clear_selected_commit_details();
+        // Handle Deselect (Esc key) for canceling actions
+        Some(input::Action::Deselect) => match app_state.ui_state {
+            UIState::ConfirmQuit => {
+                app_state.ui_state = UIState::Normal; // Cancel quit and return to normal state
+                debug!("Quit cancelled");
+            }
+            UIState::CommitMessage | UIState::ConfirmCommit => {
+                app_state.ui_state = UIState::Normal; // Cancel workflow
+                app_state.commit_state = None;
+                debug!("Workflow cancelled");
+            }
+            _ => {}
         },
+
         Some(input::Action::CommitWork) => {
             app_state.ui_state = UIState::CommitMessage;
             app_state.commit_state = Some(CommitState { message: String::new() });

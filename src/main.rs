@@ -44,6 +44,7 @@ fn main() -> Result<(), io::Error> {
                     ])
                     .split(f.area());
     
+    
                 // Style for focused and unfocused panels
                 let focused_style = Style::default().fg(Color::Yellow);
                 let unfocused_style = Style::default();
@@ -163,6 +164,19 @@ fn main() -> Result<(), io::Error> {
                         .title("Are you sure you want to commit and push? (Press Enter to Confirm)")
                         .borders(Borders::ALL);
                     f.render_widget(confirm_prompt, chunks[0]);
+                },
+                UIState::ConfirmQuit => {
+                    let chunks = Layout::default()
+                        .direction(Direction::Vertical)
+                        .margin(1)
+                        .constraints([Constraint::Percentage(100)])
+                        .split(f.size());
+                
+                    let quit_prompt = Block::default()
+                        .title("Are you sure you want to quit? (Press Enter to Confirm, Esc to Cancel)")
+                        .borders(Borders::ALL);
+                
+                    f.render_widget(quit_prompt, chunks[0]);
                 }
             }
         })?;
