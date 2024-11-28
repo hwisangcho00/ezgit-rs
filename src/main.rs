@@ -50,34 +50,29 @@ fn main() -> Result<(), io::Error> {
                     let unfocused_style = Style::default();
         
                     // Render Commit Log
-                    let commit_items: Vec<ListItem> = app_state
-                    .commit_log
-                    .iter()
-                    .enumerate()
-                    .map(|(i, commit)| {
-                        if i == app_state.selected_index {
-                            ListItem::new(commit.clone())
-                                .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow))
-                        } else {
-                            ListItem::new(commit.clone())
-                        }
-                    })
-                    .collect();
-        
+                    let commit_chunk_height = chunks[0].height as usize; // Height of the commit log chunk
+                    app_state.visible_count = commit_chunk_height;       // Update visible_count dynamically
+                    app_state.update_visible_range();                   // Update visible range based on selected index
+
+                    // Render Commit Log
+                    let visible_commits = &app_state.commit_log[app_state.visible_range.0..app_state.visible_range.1];
+                    let commit_items: Vec<ListItem> = visible_commits
+                        .iter()
+                        .enumerate()
+                        .map(|(i, commit)| {
+                            let global_index = app_state.visible_range.0 + i;
+                            if global_index == app_state.selected_index {
+                                ListItem::new(commit.clone())
+                                    .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow))
+                            } else {
+                                ListItem::new(commit.clone())
+                            }
+                        })
+                        .collect();
+
                     let commit_list = List::new(commit_items)
-                        .block(
-                            Block::default()
-                                .title("Commit Log")
-                                .borders(Borders::ALL)
-                                .border_style(
-                                    if matches!(app_state.focused_panel, Panel::CommitLog) {
-                                        focused_style
-                                    } else {
-                                        unfocused_style
-                                    },
-                                ),
-                        );
-        
+                        .block(Block::default().title("Commit Log").borders(Borders::ALL));
+
                     f.render_widget(commit_list, chunks[0]);
         
         

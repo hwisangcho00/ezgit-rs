@@ -24,6 +24,8 @@ pub enum InputMode {
 pub struct AppState {
     pub selected_index: usize,       // Selected commit index
     pub commit_log: Vec<String>,     // Commit log
+    pub visible_range: (usize, usize), // Visible range of commits
+    pub visible_count: usize,
     pub branches: Vec<String>,       // Branch list
     pub selected_branch: usize,      // Selected branch index
     pub focused_panel: Panel,        // Currently focused panel
@@ -38,6 +40,8 @@ impl AppState {
         Self {
             selected_index: 0,
             commit_log,
+            visible_range: (0, 0),
+            visible_count: 10,
             branches,
             selected_branch: 0,
             focused_panel: Panel::CommitLog,
@@ -48,6 +52,26 @@ impl AppState {
         }
     }
 
+    pub fn update_visible_range(&mut self) {
+        let start = self.selected_index.saturating_sub(self.selected_index % self.visible_count);
+        let end = usize::min(start + self.visible_count, self.commit_log.len());
+        self.visible_range = (start, end);
+    }
+
+    pub fn scroll_up(&mut self) {
+        if self.visible_range.0 > 0 {
+            self.visible_range.0 -= 1;
+            self.visible_range.1 = usize::min(self.visible_range.1 - 1, self.commit_log.len());
+        }
+    }
+
+    pub fn scroll_down(&mut self) {
+        if self.visible_range.1 < self.commit_log.len() {
+            self.visible_range.0 += 1;
+            self.visible_range.1 = usize::min(self.visible_range.1 + 1, self.commit_log.len());
+        }
+    }
+
     pub fn focus_next_panel(&mut self) {
         self.focused_panel = match self.focused_panel {
             Panel::CommitLog => Panel::Branches,
@@ -55,17 +79,21 @@ impl AppState {
         };
     }
 
-    // Move selection up
     pub fn select_previous(&mut self) {
         if self.selected_index > 0 {
             self.selected_index -= 1;
+            if self.selected_index < self.visible_range.0 {
+                self.scroll_up();
+            }
         }
     }
 
-    // Move selection down
     pub fn select_next(&mut self) {
         if self.selected_index < self.commit_log.len() - 1 {
             self.selected_index += 1;
+            if self.selected_index >= self.visible_range.1 {
+                self.scroll_down();
+            }
         }
     }
 
