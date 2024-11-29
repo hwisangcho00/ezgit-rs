@@ -130,6 +130,11 @@ pub fn create_and_switch_branch(repo_path: &str, branch_name: &str) -> Result<()
 }
 
 pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), String> {
+    // Load environment variables for authentication
+    dotenv().ok();
+    let username = env::var("GIT_USERNAME").map_err(|_| "GIT_USERNAME not set".to_string())?;
+    let token = env::var("GIT_PASSWORD").map_err(|_| "GIT_PASSWORD not set".to_string())?; // Use the token here
+
     let repo = Repository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     // Switch to the target branch
@@ -149,7 +154,6 @@ pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), Str
 
     // Prepare for merge
     let mut merge_options = MergeOptions::new();
-    let fetch_options = FetchOptions::new();
     let annotated_commit = repo.find_annotated_commit(branch_commit.id())
         .map_err(|e| format!("Failed to create annotated commit: {}", e))?;
 
@@ -175,5 +179,23 @@ pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), Str
         &[&head_commit, &branch_commit],
     ).map_err(|e| format!("Failed to commit merge: {}", e))?;
 
+    // Push the changes
+    let mut callbacks = RemoteCallbacks::new();
+    callbacks.credentials(move |_url, username_from_url, _allowed_types| {
+        Cred::userpass_plaintext(
+            username_from_url.unwrap_or(&username), // Use username from URL or fallback
+            &token,                                 // Use the PAT as the password
+        )
+    });
+
+    let mut push_options = PushOptions::new();
+    push_options.remote_callbacks(callbacks);
+
+    let mut remote = repo.find_remote("origin").map_err(|e| format!("Failed to find remote: {}", e))?;
+    remote
+        .push(&[format!("refs/heads/{}", target_branch)], Some(&mut push_options))
+        .map_err(|e| format!("Failed to push changes: {}", e))?;
+
     Ok(())
 }
+
