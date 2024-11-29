@@ -3,7 +3,7 @@ use crossterm::{execute, terminal, ExecutableCommand};
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 use ratatui::style::{Style, Color};
 use ezgit_rs::git_commands;
 use ezgit_rs::app_state::{AppState, Panel, UIState};
@@ -38,9 +38,8 @@ fn main() -> Result<(), io::Error> {
                     .direction(Direction::Vertical)
                     .margin(1)
                     .constraints([
-                        Constraint::Percentage(50), // Commit Log
+                        Constraint::Percentage(70), // Commit Log
                         Constraint::Percentage(30), // Branch List
-                        Constraint::Percentage(20), // Input Prompt
                     ])
                     .split(f.area());
     
@@ -115,24 +114,6 @@ fn main() -> Result<(), io::Error> {
                         );
         
                     f.render_widget(branch_list, chunks[1]);
-        
-        
-                    let key_guide_text = vec![
-                        "  - q: Quit the application (requires confirmation)",
-                        "  - Esc: Cancel current action or return to the previous screen",
-                        "  - Enter: Select item, confirm action, or proceed",
-                        "  - Tab: Switch between Commit Log and Branches panel",
-                        "  - ↑/↓: Navigate through items in the current panel",
-                        "  - c: Start the commit workflow to add, commit, and push changes",
-                        "  - b: Create and switch to a new branch",
-                        "  - r: Refresh the Commit Log and Branches list",
-                    ];
-                    
-                    let key_guide = Paragraph::new(key_guide_text.join("\n"))
-                        .block(Block::default().title("Key Guide").borders(Borders::ALL))
-                        .wrap(Wrap { trim: false });
-                    
-                    f.render_widget(key_guide, chunks[2]);
                     
                 },
 
@@ -219,6 +200,45 @@ fn main() -> Result<(), io::Error> {
                         .block(Block::default().title("Create Branch").borders(Borders::ALL));
                 
                     f.render_widget(branch_prompt, chunks[0]);
+                },
+                UIState::KeyGuide => {
+                    let chunks = Layout::default()
+                    .direction(Direction::Vertical)
+                    .margin(1)
+                    .constraints([Constraint::Percentage(100)])
+                    .split(f.area());
+            
+                    let key_guide_text = vec![
+                        "  - q: Quit the application (requires confirmation)",
+                        "  - Esc: Cancel current action or return to the previous screen",
+                        "  - Enter: Select item, confirm action, or proceed",
+                        "  - Tab: Switch between Commit Log and Branches panel",
+                        "  - ↑/↓: Navigate through items in the current panel",
+                        "  - c: Start the commit workflow to add, commit, and push changes",
+                        "  - b: Create and switch to a new branch",
+                        "  - r: Refresh the Commit Log and Branches list",
+                        "  - g: Open this Key Guide",
+                    ];
+                
+                    let key_guide = Paragraph::new(key_guide_text.join("\n"))
+                        .block(Block::default().title("Key Guide").borders(Borders::ALL))
+                        .wrap(ratatui::widgets::Wrap { trim: false });
+                
+                    f.render_widget(key_guide, chunks[0]);
+                },
+                UIState::ConfirmMerge => {
+                    let chunks = Layout::default()
+                        .direction(Direction::Vertical)
+                        .margin(1)
+                        .constraints([Constraint::Percentage(100)])
+                        .split(f.area());
+                
+                    let confirmation_text = "Are you sure you want to merge into the main/master branch?\nPress Enter to confirm or Esc to cancel.";
+                    let confirmation = Paragraph::new(confirmation_text)
+                        .block(Block::default().title("Confirm Merge").borders(Borders::ALL))
+                        .wrap(ratatui::widgets::Wrap { trim: false });
+                
+                    f.render_widget(confirmation, chunks[0]);
                 }
             }
         })?;

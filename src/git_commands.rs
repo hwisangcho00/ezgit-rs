@@ -1,4 +1,4 @@
-use git2::{BranchType, Repository, Cred, PushOptions, RemoteCallbacks};
+use git2::{BranchType, Repository, Cred, PushOptions, RemoteCallbacks, MergeOptions, FetchOptions};
 
 // use log::debug;
 
@@ -127,4 +127,48 @@ pub fn create_and_switch_branch(repo_path: &str, branch_name: &str) -> Result<()
         .map_err(|e| format!("Failed to switch to branch: {}", e))?;
 
     Ok(())
+}
+
+pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), String> {
+    let repo = Repository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
+
+    let target_ref = repo.find_branch(target_branch, BranchType::Local)
+        .map_err(|e| format!("Target branch not found: {}", e))?;
+
+    let target_commit = target_ref.get().peel_to_commit()
+        .map_err(|e| format!("Failed to get commit for target branch '{}': {}", target_branch, e))?;
+
+    let head_ref = repo.head().map_err(|e| format!("Failed to get HEAD: {}", e))?;
+    let head_commit = head_ref.peel_to_commit()
+        .map_err(|e| format!("Failed to get commit for HEAD: {}", e))?;
+
+    // Merge the current branch into the target branch
+    let mut options = MergeOptions::new();
+    let fetch_options = FetchOptions::new();
+    let annotated_commit = repo.find_annotated_commit(head_commit.id()).map_err(|e| format!("Failed to find annotated commit: {}", e))?;
+    repo.merge(&[&annotated_commit], Some(&mut options), None)
+        .map_err(|e| format!("Merge failed: {}", e))?;
+
+    // Handle conflicts if they exist
+    if repo.index().map_err(|e| e.to_string())?.has_conflicts() {
+        return Err("Merge completed with conflicts. Resolve them manually.".to_string());
+    }
+
+    // Commit the merge result
+    let signature = repo.signature().map_err(|e| format!("Failed to create signature: {}", e))?;
+    let tree_oid = repo.index().map_err(|e| e.to_string())?.write_tree().map_err(|e| format!("Failed to write tree: {}", e))?;
+    let tree = repo.find_tree(tree_oid).map_err(|e| format!("Failed to find tree: {}", e))?;
+
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        &format!("Merge branch '{}' into '{}'", head_ref.shorthand().unwrap_or(""), target_branch),
+        &tree,
+        &[&target_commit, &head_commit],
+    ).map_err(|e| format!("Failed to commit merge: {}", e))?;
+
+    Ok(())
+
+
 }

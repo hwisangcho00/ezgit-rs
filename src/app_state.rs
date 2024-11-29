@@ -3,6 +3,7 @@ pub enum Panel {
     Branches,
 }
 
+#[derive(PartialEq)]
 pub enum UIState {
     Normal,
     CommitMessage,
@@ -10,6 +11,8 @@ pub enum UIState {
     ConfirmQuit,
     CommitDetails,
     CreateBranch,
+    KeyGuide,
+    ConfirmMerge,
 
 }
 
