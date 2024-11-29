@@ -1,4 +1,4 @@
-use git2::{BranchType, Repository, Cred, PushOptions, RemoteCallbacks, MergeOptions, FetchOptions};
+use git2::{BranchType, Cred, FetchOptions, MergeOptions, PushOptions, RemoteCallbacks, Repository};
 
 // use log::debug;
 
@@ -132,21 +132,28 @@ pub fn create_and_switch_branch(repo_path: &str, branch_name: &str) -> Result<()
 pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), String> {
     let repo = Repository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
-    let target_ref = repo.find_branch(target_branch, BranchType::Local)
-        .map_err(|e| format!("Target branch not found: {}", e))?;
-
-    let target_commit = target_ref.get().peel_to_commit()
-        .map_err(|e| format!("Failed to get commit for target branch '{}': {}", target_branch, e))?;
+    // Switch to the target branch
+    repo.set_head(&format!("refs/heads/{}", target_branch))
+        .map_err(|e| format!("Failed to set HEAD to target branch '{}': {}", target_branch, e))?;
+    repo.checkout_head(None)
+        .map_err(|e| format!("Failed to checkout target branch '{}': {}", target_branch, e))?;
 
     let head_ref = repo.head().map_err(|e| format!("Failed to get HEAD: {}", e))?;
     let head_commit = head_ref.peel_to_commit()
         .map_err(|e| format!("Failed to get commit for HEAD: {}", e))?;
 
-    // Merge the current branch into the target branch
-    let mut options = MergeOptions::new();
+    // Get the current branch's HEAD commit
+    let branch_ref = repo.find_reference("HEAD").map_err(|e| format!("Failed to find HEAD reference: {}", e))?;
+    let branch_commit = branch_ref.peel_to_commit()
+        .map_err(|e| format!("Failed to get branch commit: {}", e))?;
+
+    // Prepare for merge
+    let mut merge_options = MergeOptions::new();
     let fetch_options = FetchOptions::new();
-    let annotated_commit = repo.find_annotated_commit(head_commit.id()).map_err(|e| format!("Failed to find annotated commit: {}", e))?;
-    repo.merge(&[&annotated_commit], Some(&mut options), None)
+    let annotated_commit = repo.find_annotated_commit(branch_commit.id())
+        .map_err(|e| format!("Failed to create annotated commit: {}", e))?;
+
+    repo.merge(&[&annotated_commit], Some(&mut merge_options), None)
         .map_err(|e| format!("Merge failed: {}", e))?;
 
     // Handle conflicts if they exist
@@ -163,12 +170,10 @@ pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), Str
         Some("HEAD"),
         &signature,
         &signature,
-        &format!("Merge branch '{}' into '{}'", head_ref.shorthand().unwrap_or(""), target_branch),
+        &format!("Merge branch '{}' into '{}'", branch_ref.shorthand().unwrap_or(""), target_branch),
         &tree,
-        &[&target_commit, &head_commit],
+        &[&head_commit, &branch_commit],
     ).map_err(|e| format!("Failed to commit merge: {}", e))?;
 
     Ok(())
-
-
 }

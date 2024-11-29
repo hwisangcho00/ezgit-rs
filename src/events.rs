@@ -173,13 +173,15 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                     Ok(_) => {
                         debug!("Successfully merged the current branch into '{}'", target_branch);
                         app_state.commit_log = git_commands::get_commit_log("."); // Refresh commit log
+                        app_state.ui_state = UIState::Normal; // Return to normal state after merging
                     }
                     Err(err) => {
                         debug!("Error merging into '{}': {}", target_branch, err);
+                        app_state.ui_state = UIState::Error; // Transition to error state
+                        app_state.error_message = Some(err); // Store the error message
                     }
                 }
-                app_state.commit_log = git_commands::get_commit_log("."); // Refresh commit log
-                app_state.ui_state = UIState::Normal; // Return to normal state after merging
+
             },
             _ => {}
             
@@ -214,7 +216,11 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
              },
              UIState::ConfirmMerge => {
                 app_state.ui_state = UIState::Normal;
-             }
+             },
+             UIState::Error => {
+                app_state.ui_state = UIState::Normal; // Return to Normal state
+                app_state.error_message = None;      // Clear the error message
+             },
             _ => {}
         },
 

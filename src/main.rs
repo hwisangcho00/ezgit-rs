@@ -239,6 +239,20 @@ fn main() -> Result<(), io::Error> {
                         .wrap(ratatui::widgets::Wrap { trim: false });
                 
                     f.render_widget(confirmation, chunks[0]);
+                },
+                UIState::Error => {
+                    let chunks = Layout::default()
+                        .direction(Direction::Vertical)
+                        .margin(1)
+                        .constraints([Constraint::Percentage(100)])
+                        .split(f.size());
+                
+                    let error_message = app_state.error_message.clone().unwrap_or("Unknown error".to_string());
+                    let error_paragraph = Paragraph::new(error_message)
+                        .block(Block::default().title("Error").borders(Borders::ALL))
+                        .wrap(ratatui::widgets::Wrap { trim: false });
+                
+                    f.render_widget(error_paragraph, chunks[0]);
                 }
             }
         })?;
