@@ -210,14 +210,15 @@ fn main() -> Result<(), io::Error> {
             
                     let key_guide_text = vec![
                         "  - q: Quit the application (requires confirmation)",
-                        "  - Esc: Cancel current action or return to the previous screen",
+                        "  - Esc: Cancel current action, return to the previous screen, or exit error messages",
                         "  - Enter: Select item, confirm action, or proceed",
                         "  - Tab: Switch between Commit Log and Branches panel",
                         "  - ↑/↓: Navigate through items in the current panel",
-                        "  - c: Start the commit workflow to add, commit, and push changes",
+                        "  - c: Start the commit workflow (add, commit, and push changes)",
                         "  - b: Create and switch to a new branch",
                         "  - r: Refresh the Commit Log and Branches list",
                         "  - g: Open this Key Guide",
+                        "  - m: Merge the current branch into the main or master branch (requires confirmation)",
                     ];
                 
                     let key_guide = Paragraph::new(key_guide_text.join("\n"))
