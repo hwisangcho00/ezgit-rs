@@ -48,11 +48,11 @@ fn main() -> Result<(), io::Error> {
                     // Style for focused and unfocused panels
                     let focused_style = Style::default().fg(Color::Yellow);
                     let unfocused_style = Style::default();
-        
-                    // Render Commit Log
-                    let commit_chunk_height = chunks[0].height as usize; // Height of the commit log chunk
-                    app_state.visible_count = commit_chunk_height;       // Update visible_count dynamically
-                    app_state.update_visible_range();                   // Update visible range based on selected index
+
+                    // Adjust commit chunk height
+                    let commit_chunk_height = (chunks[0].height.saturating_sub(2)) as usize; // Account for borders
+                    app_state.visible_count = commit_chunk_height; // Dynamically update visible count
+                    app_state.update_visible_range();             // Update visible range based on selected index
 
                     // Render Commit Log
                     let visible_commits = &app_state.commit_log[app_state.visible_range.0..app_state.visible_range.1];
@@ -74,8 +74,7 @@ fn main() -> Result<(), io::Error> {
                         Block::default()
                             .title("Commit Log")
                             .borders(Borders::ALL)
-                            .border_style(
-                                if matches!(app_state.focused_panel, Panel::CommitLog) {
+                            .border_style(if matches!(app_state.focused_panel, Panel::CommitLog) {
                                 focused_style
                             } else {
                                 unfocused_style
