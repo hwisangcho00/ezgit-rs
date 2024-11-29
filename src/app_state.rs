@@ -3,12 +3,17 @@ pub enum Panel {
     Branches,
 }
 
+#[derive(PartialEq)]
 pub enum UIState {
     Normal,
     CommitMessage,
     ConfirmCommit,
     ConfirmQuit,
     CommitDetails,
+    CreateBranch,
+    KeyGuide,
+    ConfirmMerge,
+    Error,
 
 }
 
@@ -33,6 +38,8 @@ pub struct AppState {
     pub ui_state: UIState,
     pub commit_state: Option<CommitState>,
     pub input_mode: InputMode,
+    pub branch_name: String,
+    pub error_message: Option<String>,
 }
 
 impl AppState {
@@ -49,6 +56,8 @@ impl AppState {
             ui_state: UIState::Normal,
             commit_state: None,
             input_mode: InputMode::Command,
+            branch_name: String::new(),
+            error_message: None,
         }
     }
 

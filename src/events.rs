@@ -11,16 +11,28 @@ pub fn handle_event(app_state: &mut AppState) -> Result<bool, std::io::Error> {
 
 fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
     match input::handle_user_input(true)? {
-        Some(input::Action::TextInput(c)) => {
-            if let Some(commit_state) = &mut app_state.commit_state {
-                commit_state.message.push(c);
+        Some(input::Action::TextInput(c)) => match app_state.ui_state {
+            UIState::CommitMessage => {
+                if let Some(commit_state) = &mut app_state.commit_state {
+                    commit_state.message.push(c); // Add character to commit message
+                }
             }
-        }
-        Some(input::Action::Backspace) => {
-            if let Some(commit_state) = &mut app_state.commit_state {
-                commit_state.message.pop();
+            UIState::CreateBranch => {
+                app_state.branch_name.push(c); // Add character to branch name
             }
-        }
+            _ => {}
+        },
+        Some(input::Action::Backspace) => match app_state.ui_state {
+            UIState::CommitMessage => {
+                if let Some(commit_state) = &mut app_state.commit_state {
+                    commit_state.message.pop(); // Remove last character from commit message
+                }
+            }
+            UIState::CreateBranch => {
+                app_state.branch_name.pop(); // Remove last character from branch name
+            }
+            _ => {}
+        },
         Some(input::Action::Confirm) => {
             match app_state.ui_state {
                 UIState::CommitMessage => {
@@ -33,7 +45,7 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
                             debug!("Transitioned to ConfirmCommit state");
                         }
                     }
-                }
+                },
                 UIState::ConfirmCommit => {
                     // Perform the commit and push operation
                     if let Some(commit_state) = &app_state.commit_state {
@@ -51,7 +63,17 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
                             }
                         }
                     }
-                }
+                },
+                UIState::CreateBranch => {
+                    if let Err(err) = git_commands::create_and_switch_branch(".", &app_state.branch_name) {
+                        debug!("Error creating branch: {}", err);
+                    } else {
+                        app_state.branches = git_commands::get_branches("."); // Refresh branch list
+                        debug!("Branch '{}' created and switched successfully", app_state.branch_name);
+                    }
+                    app_state.ui_state = UIState::Normal; // Return to normal state
+                    app_state.input_mode = InputMode::Command;
+                },
                 _ => {
                     debug!("Confirm action ignored in current UIState");
                 }
@@ -61,6 +83,7 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
         Some(input::Action::Cancel) => {
             app_state.ui_state = UIState::Normal;
             app_state.commit_state = None;
+            app_state.branch_name = String::new();
             app_state.input_mode = InputMode::Command; // Switch back to Command Mode
         }
         _ => {}
@@ -138,6 +161,28 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                     }
                 }
             },
+            UIState::ConfirmMerge => {
+                // Perform the merge
+                let target_branch = if app_state.branches.contains(&"main".to_string()) {
+                    "main"
+                } else {
+                    "master"
+                };
+
+                match git_commands::merge_into_branch(".", target_branch) {
+                    Ok(_) => {
+                        debug!("Successfully merged the current branch into '{}'", target_branch);
+                        app_state.commit_log = git_commands::get_commit_log("."); // Refresh commit log
+                        app_state.ui_state = UIState::Normal; // Return to normal state after merging
+                    }
+                    Err(err) => {
+                        debug!("Error merging into '{}': {}", target_branch, err);
+                        app_state.ui_state = UIState::Error; // Transition to error state
+                        app_state.error_message = Some(err); // Store the error message
+                    }
+                }
+
+            },
             _ => {}
             
         },
@@ -165,13 +210,41 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 app_state.ui_state = UIState::Normal; // Return to normal state
                 debug!("Exited commit details view");
              },
+             UIState::KeyGuide => {
+                app_state.ui_state = UIState::Normal; // Return to normal state
+                debug!("Exited key guide view");
+             },
+             UIState::ConfirmMerge => {
+                app_state.ui_state = UIState::Normal;
+             },
+             UIState::Error => {
+                app_state.ui_state = UIState::Normal; // Return to Normal state
+                app_state.error_message = None;      // Clear the error message
+             },
             _ => {}
         },
 
         Some(input::Action::CommitWork) => {
-            app_state.ui_state = UIState::CommitMessage;
-            app_state.commit_state = Some(CommitState { message: String::new() });
-            app_state.input_mode = InputMode::Text;
+            if app_state.ui_state == UIState::Normal {
+                app_state.ui_state = UIState::CommitMessage;
+                app_state.commit_state = Some(CommitState { message: String::new() });
+                app_state.input_mode = InputMode::Text;
+            }
+
+        },
+
+        Some(input::Action::CreateBranch) => {
+            if app_state.ui_state == UIState::Normal {
+                app_state.ui_state = UIState::CreateBranch;
+                app_state.input_mode = InputMode::Text;
+                app_state.branch_name = String::new();
+            }
+        },
+        Some(input::Action::ShowKeyGuide) => {
+            app_state.ui_state = UIState::KeyGuide;
+        },
+        Some(input::Action::MergeBranch) => {
+            app_state.ui_state = UIState::ConfirmMerge;
         }
 
         _ => {}
