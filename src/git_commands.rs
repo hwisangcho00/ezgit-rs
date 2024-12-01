@@ -188,7 +188,7 @@ pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), Str
         &[&current_branch_commit],
     ).map_err(|e| format!("Failed to commit merge: {}", e))?;
 
-    println!("Merge completed successfully. You are now on the '{}' branch.", target_branch);
+    debug!("Merge completed successfully. You are now on the '{}' branch.", target_branch);
 
     Ok(())
 }
