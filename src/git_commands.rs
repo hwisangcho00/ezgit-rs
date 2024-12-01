@@ -197,8 +197,6 @@ pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), Str
         .push(&[format!("refs/heads/{}", target_branch)], Some(&mut push_options))
         .map_err(|e| format!("Failed to push changes: {}", e))?;
 
-    let _ = commit_and_push(".", "Merged branches");
-
     Ok(())
 }
 
