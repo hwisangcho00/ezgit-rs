@@ -25,7 +25,7 @@ fn main() -> Result<(), io::Error> {
 
     let initial_commit_log = git_commands::get_commit_log(".");
     let initial_branch = git_commands::get_branches(".");
-    let mut app_state = AppState::new(initial_commit_log, initial_branch);
+    let mut app_state = AppState::new(initial_commit_log, initial_branch, ".");
 
     // Main event loop
     loop {
@@ -82,37 +82,42 @@ fn main() -> Result<(), io::Error> {
 
                     f.render_widget(commit_list, chunks[0]);
         
-        
                     // Render Branch List
                     let branch_items: Vec<ListItem> = app_state
                         .branches
                         .iter()
                         .enumerate()
                         .map(|(i, branch)| {
-                            if i == app_state.selected_branch {
-                                ListItem::new(branch.clone())
-                                    .style(ratatui::style::Style::default().fg(ratatui::style::Color::Cyan))
+                            let mut style = if i == app_state.selected_branch {
+                                Style::default().fg(Color::Yellow) // Highlight the selected branch
                             } else {
-                                ListItem::new(branch.clone())
+                                Style::default()
+                            };
+
+                            // Apply bold style if the branch is the current branch
+                            if branch == &app_state.branch_name {
+                                style = style
+                                    .add_modifier(ratatui::style::Modifier::BOLD)
+                                    .bg(Color::Gray);
                             }
+
+                            ListItem::new(branch.clone()).style(style)
                         })
                         .collect();
-        
-                    // Branch List
-                    let branch_list = List::new(branch_items)
-                        .block(
-                            Block::default()
-                                .title("Branches")
-                                .borders(Borders::ALL)
-                                .border_style(
-                                    if matches!(app_state.focused_panel, Panel::Branches) {
-                                        focused_style
-                                    } else {
-                                        unfocused_style
-                                    },
-                                ),
-                        );
-        
+
+                    let branch_list = List::new(branch_items).block(
+                        Block::default()
+                            .title("Branches")
+                            .borders(Borders::ALL)
+                            .border_style(
+                                if matches!(app_state.focused_panel, Panel::Branches) {
+                                    focused_style
+                                } else {
+                                    unfocused_style
+                                },
+                            ),
+                    );
+
                     f.render_widget(branch_list, chunks[1]);
                     
                 },

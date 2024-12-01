@@ -1,3 +1,5 @@
+use git2::Repository;
+
 pub enum Panel {
     CommitLog,
     Branches,
@@ -43,20 +45,35 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(commit_log: Vec<String>, branches: Vec<String>) -> Self {
+
+    pub fn new(commit_log: Vec<String>, branches: Vec<String>, repo_path: &str) -> Self {
+        // Determine the current branch
+        let current_branch = match Repository::open(repo_path)
+            .and_then(|repo| repo.head().and_then(|head| head.shorthand().map(String::from).ok_or(git2::Error::from_str("No branch name"))))
+        {
+            Ok(branch_name) => branch_name,
+            Err(_) => String::new(), // Default to an empty string if the branch can't be determined
+        };
+
+        // Find the index of the current branch in the branches list
+        let selected_branch = branches
+            .iter()
+            .position(|branch| branch == &current_branch)
+            .unwrap_or(0); // Default to the first branch if the current branch isn't found
+
         Self {
             selected_index: 0,
             commit_log,
             visible_range: (0, 0),
             visible_count: 10,
             branches,
-            selected_branch: 0,
+            selected_branch,
             focused_panel: Panel::CommitLog,
             selected_commit_details: None,
             ui_state: UIState::Normal,
             commit_state: None,
             input_mode: InputMode::Command,
-            branch_name: String::new(),
+            branch_name: current_branch,
             error_message: None,
         }
     }
