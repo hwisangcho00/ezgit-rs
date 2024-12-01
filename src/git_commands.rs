@@ -45,7 +45,7 @@ pub fn checkout_branch(repo_path: &str, branch_name: &str) -> Result<(), String>
             .map_err(|e| format!("Failed to set HEAD: {}", e))?;
     }
 
-    // Step 2: Push the branch to the remote and set upstream
+    // Step 2: Push the branch to the remote
     let mut remote = repo.find_remote("origin").map_err(|e| format!("Failed to find remote: {}", e))?;
     let mut callbacks = git2::RemoteCallbacks::new();
 
@@ -68,6 +68,14 @@ pub fn checkout_branch(repo_path: &str, branch_name: &str) -> Result<(), String>
     remote
         .push(&[refspec], Some(&mut push_options))
         .map_err(|e| format!("Failed to push branch to remote: {}", e))?;
+
+    // Step 3: Set upstream tracking branch
+    let mut branch = repo
+        .find_branch(branch_name, git2::BranchType::Local)
+        .map_err(|e| format!("Failed to find local branch '{}': {}", branch_name, e))?;
+    branch
+        .set_upstream(Some(branch_name))
+        .map_err(|e| format!("Failed to set upstream for branch '{}': {}", branch_name, e))?;
 
     Ok(())
 }
