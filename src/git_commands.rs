@@ -30,9 +30,9 @@ pub fn get_branches(repo_path: &str) -> Vec<String> {
 }
 
 pub fn checkout_branch(repo_path: &str, branch_name: &str) -> Result<(), String> {
-
     let repo = Repository::open(repo_path).map_err(|e| e.to_string())?;
 
+    // Step 1: Find and checkout the branch
     let (object, reference) = repo
         .revparse_ext(branch_name)
         .map_err(|e| format!("Failed to find branch '{}' : {}", branch_name, e))?;
@@ -44,6 +44,30 @@ pub fn checkout_branch(repo_path: &str, branch_name: &str) -> Result<(), String>
         repo.set_head(&ref_name)
             .map_err(|e| format!("Failed to set HEAD: {}", e))?;
     }
+
+    // Step 2: Push the branch to the remote and set upstream
+    let mut remote = repo.find_remote("origin").map_err(|e| format!("Failed to find remote: {}", e))?;
+    let mut callbacks = git2::RemoteCallbacks::new();
+
+    // Load credentials for authentication
+    dotenv::dotenv().ok();
+    let username = std::env::var("GIT_USERNAME").map_err(|_| "GIT_USERNAME not set".to_string())?;
+    let token = std::env::var("GIT_PASSWORD").map_err(|_| "GIT_PASSWORD not set".to_string())?;
+
+    callbacks.credentials(move |_url, username_from_url, _allowed_types| {
+        git2::Cred::userpass_plaintext(
+            username_from_url.unwrap_or(&username),
+            &token,
+        )
+    });
+
+    let mut push_options = git2::PushOptions::new();
+    push_options.remote_callbacks(callbacks);
+
+    let refspec = format!("refs/heads/{}:refs/heads/{}", branch_name, branch_name);
+    remote
+        .push(&[refspec], Some(&mut push_options))
+        .map_err(|e| format!("Failed to push branch to remote: {}", e))?;
 
     Ok(())
 }
