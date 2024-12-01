@@ -224,6 +224,8 @@ pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), Str
 
     debug!("Is this also in?");
 
+    debug!("test3");
+
     Ok(())
 }
 
