@@ -152,11 +152,19 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                         }
                     }
                     Panel::Branches => {
-                        let selected_branch = &app_state.branches[app_state.selected_branch];
-                        if let Err(e) = crate::git_commands::checkout_branch(".", selected_branch) {
-                            debug!("Error: {}", e);
-                        } else {
-                            app_state.commit_log = crate::git_commands::get_commit_log(".");
+                        let selected_branch = app_state.branches[app_state.selected_branch].clone();
+                        match crate::git_commands::checkout_branch(".", &selected_branch) {
+                            Ok(_) => {
+                                app_state.commit_log = crate::git_commands::get_commit_log("."); // Refresh commit log
+                                app_state.branches = crate::git_commands::get_branches(".");     // Refresh branch list
+                                app_state.branch_name = selected_branch.clone();                // Update the current branch
+                                debug!("Switched to branch: {}", selected_branch);
+                            }
+                            Err(err) => {
+                                debug!("Error checking out branch: {}", err);
+                                app_state.ui_state = UIState::Error; // Transition to error state
+                                app_state.error_message = Some(err); // Store error message for display
+                            }
                         }
                     }
                 }
