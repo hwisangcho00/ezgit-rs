@@ -162,18 +162,20 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 }
             },
             UIState::ConfirmMerge => {
-                // Perform the merge
+                // Determine the target branch (main or master)
                 let target_branch = if app_state.branches.contains(&"main".to_string()) {
                     "main"
                 } else {
                     "master"
                 };
-
+            
+                // Attempt to merge into the target branch
                 match git_commands::merge_into_branch(".", target_branch) {
                     Ok(_) => {
                         debug!("Successfully merged the current branch into '{}'", target_branch);
                         app_state.commit_log = git_commands::get_commit_log("."); // Refresh commit log
                         app_state.ui_state = UIState::Normal; // Return to normal state after merging
+                        app_state.error_message = None; // Clear any previous error messages
                     }
                     Err(err) => {
                         debug!("Error merging into '{}': {}", target_branch, err);
@@ -181,8 +183,8 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                         app_state.error_message = Some(err); // Store the error message
                     }
                 }
-
             },
+            
             _ => {}
             
         },

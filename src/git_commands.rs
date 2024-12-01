@@ -1,6 +1,6 @@
-use git2::{BranchType, Cred, FetchOptions, MergeOptions, PushOptions, RemoteCallbacks, Repository};
+use git2::{BranchType, Cred, MergeOptions, PushOptions, RemoteCallbacks, Repository, Signature};
 
-// use log::debug;
+use log::debug;
 
 use std::env;
 use dotenv::dotenv;
@@ -130,72 +130,65 @@ pub fn create_and_switch_branch(repo_path: &str, branch_name: &str) -> Result<()
 }
 
 pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), String> {
-    // Load environment variables for authentication
-    dotenv().ok();
-    let username = env::var("GIT_USERNAME").map_err(|_| "GIT_USERNAME not set".to_string())?;
-    let token = env::var("GIT_PASSWORD").map_err(|_| "GIT_PASSWORD not set".to_string())?; // Use the token here
-
     let repo = Repository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
-    // Switch to the target branch
+    // Step 1: Check for uncommitted changes before switching branches
+    let statuses = repo.statuses(None).map_err(|e| format!("Failed to get repository statuses: {}", e))?;
+    if !statuses.is_empty() {
+        // Auto-commit uncommitted changes
+        let mut index = repo.index().map_err(|e| format!("Failed to get repository index: {}", e))?;
+        index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)
+            .map_err(|e| format!("Failed to stage changes: {}", e))?;
+        index.write().map_err(|e| format!("Failed to write index: {}", e))?;
+
+        let oid = index.write_tree().map_err(|e| format!("Failed to write tree: {}", e))?;
+        let tree = repo.find_tree(oid).map_err(|e| format!("Failed to find tree: {}", e))?;
+        let head = repo.head().map_err(|e| format!("Failed to get HEAD: {}", e))?;
+        let parent_commit = head.peel_to_commit().map_err(|e| format!("Failed to get parent commit: {}", e))?;
+        let signature = repo.signature().map_err(|e| format!("Failed to create signature: {}", e))?;
+        repo.commit(Some("HEAD"), &signature, &signature, "Auto-commit changes before merge", &tree, &[&parent_commit])
+            .map_err(|e| format!("Failed to commit changes: {}", e))?;
+    }
+
+    // Step 2: Switch to the main branch
     repo.set_head(&format!("refs/heads/{}", target_branch))
         .map_err(|e| format!("Failed to set HEAD to target branch '{}': {}", target_branch, e))?;
     repo.checkout_head(None)
         .map_err(|e| format!("Failed to checkout target branch '{}': {}", target_branch, e))?;
 
+    // Step 3: Get the current branch's HEAD commit
     let head_ref = repo.head().map_err(|e| format!("Failed to get HEAD: {}", e))?;
-    let head_commit = head_ref.peel_to_commit()
-        .map_err(|e| format!("Failed to get commit for HEAD: {}", e))?;
+    let current_branch_commit = head_ref.peel_to_commit()
+        .map_err(|e| format!("Failed to get commit for current branch: {}", e))?;
 
-    // Get the current branch's HEAD commit
-    let branch_ref = repo.find_reference("HEAD").map_err(|e| format!("Failed to find HEAD reference: {}", e))?;
-    let branch_commit = branch_ref.peel_to_commit()
-        .map_err(|e| format!("Failed to get branch commit: {}", e))?;
-
-    // Prepare for merge
-    let mut merge_options = MergeOptions::new();
-    let annotated_commit = repo.find_annotated_commit(branch_commit.id())
+    // Step 4: Merge the current branch into the target branch
+    let annotated_commit = repo.find_annotated_commit(current_branch_commit.id())
         .map_err(|e| format!("Failed to create annotated commit: {}", e))?;
-
+    let mut merge_options = MergeOptions::new();
     repo.merge(&[&annotated_commit], Some(&mut merge_options), None)
         .map_err(|e| format!("Merge failed: {}", e))?;
 
-    let mut index = repo.index().map_err(|e| e.to_string())?;
-    if index.has_conflicts() {
-        return Err("Merge completed with conflicts. Resolve them manually.".to_string());
+    // Step 5: Check for conflicts
+    if repo.index().map_err(|e| e.to_string())?.has_conflicts() {
+        return Err("Merge completed with conflicts. Please resolve them manually.".to_string());
     }
-    index.write().map_err(|e| format!("Failed to write index: {}", e))?;
 
-    // Commit the merge result
-    let signature = repo.signature().map_err(|e| format!("Failed to create signature: {}", e))?;
-    let tree_oid = repo.index().map_err(|e| e.to_string())?.write_tree().map_err(|e| format!("Failed to write tree: {}", e))?;
+    // Step 6: Commit the merge
+    let signature = Signature::now("Merge Bot", "merge@example.com")
+        .map_err(|e| format!("Failed to create signature: {}", e))?;
+    let tree_oid = repo.index().map_err(|e| e.to_string())?.write_tree()
+        .map_err(|e| format!("Failed to write tree: {}", e))?;
     let tree = repo.find_tree(tree_oid).map_err(|e| format!("Failed to find tree: {}", e))?;
-
     repo.commit(
         Some("HEAD"),
         &signature,
         &signature,
-        &format!("Merge branch '{}' into '{}'", branch_ref.shorthand().unwrap_or(""), target_branch),
+        "Merge changes into main branch",
         &tree,
-        &[&head_commit, &branch_commit],
+        &[&current_branch_commit],
     ).map_err(|e| format!("Failed to commit merge: {}", e))?;
 
-    // Push the changes
-    let mut callbacks = RemoteCallbacks::new();
-    callbacks.credentials(move |_url, username_from_url, _allowed_types| {
-        Cred::userpass_plaintext(
-            username_from_url.unwrap_or(&username), // Use username from URL or fallback
-            &token,                                 // Use the PAT as the password
-        )
-    });
-
-    let mut push_options = PushOptions::new();
-    push_options.remote_callbacks(callbacks);
-
-    let mut remote = repo.find_remote("origin").map_err(|e| format!("Failed to find remote: {}", e))?;
-    remote
-        .push(&[format!("refs/heads/{}", target_branch)], Some(&mut push_options))
-        .map_err(|e| format!("Failed to push changes: {}", e))?;
+    println!("Merge completed successfully. You are now on the '{}' branch.", target_branch);
 
     Ok(())
 }

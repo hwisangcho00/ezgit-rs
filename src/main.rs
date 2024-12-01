@@ -246,7 +246,7 @@ fn main() -> Result<(), io::Error> {
                         .direction(Direction::Vertical)
                         .margin(1)
                         .constraints([Constraint::Percentage(100)])
-                        .split(f.size());
+                        .split(f.area());
                 
                     let error_message = app_state.error_message.clone().unwrap_or("Unknown error".to_string());
                     let error_paragraph = Paragraph::new(error_message)
