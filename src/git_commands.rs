@@ -190,6 +190,8 @@ pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), Str
 
     debug!("Merge completed successfully. You are now on the '{}' branch.", target_branch);
 
+    debug!("Is this in?");
+
     Ok(())
 }
 
