@@ -269,5 +269,3 @@ fn main() -> Result<(), io::Error> {
     execute!(terminal.backend_mut(), terminal::LeaveAlternateScreen)?;
     Ok(())
 }
-
-// test change

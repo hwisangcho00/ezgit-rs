@@ -160,10 +160,11 @@ pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), Str
     repo.merge(&[&annotated_commit], Some(&mut merge_options), None)
         .map_err(|e| format!("Merge failed: {}", e))?;
 
-    // Handle conflicts if they exist
-    if repo.index().map_err(|e| e.to_string())?.has_conflicts() {
+    let mut index = repo.index().map_err(|e| e.to_string())?;
+    if index.has_conflicts() {
         return Err("Merge completed with conflicts. Resolve them manually.".to_string());
     }
+    index.write().map_err(|e| format!("Failed to write index: {}", e))?;
 
     // Commit the merge result
     let signature = repo.signature().map_err(|e| format!("Failed to create signature: {}", e))?;
@@ -195,6 +196,8 @@ pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), Str
     remote
         .push(&[format!("refs/heads/{}", target_branch)], Some(&mut push_options))
         .map_err(|e| format!("Failed to push changes: {}", e))?;
+
+    let _ = commit_and_push(".", "Merged branches");
 
     Ok(())
 }
