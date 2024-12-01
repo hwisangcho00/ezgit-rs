@@ -2,6 +2,7 @@
 name = "ezgit-rs"
 version = "0.1.0"
 edition = "2021"
+description = "A terminal-based Git helper tool"
 authors = ["Joseph Cho <hwisang@seas.upenn.edu>"]
 license = "MIT"
 repository = "https://github.com/hwisangcho00/ezgit-rs"
@@ -13,4 +14,5 @@ git2 = "0.19.0"
 log = "0.4"
 simplelog = "0.12"
 dotenv = "0.15"
+chrono = "0.4"
 

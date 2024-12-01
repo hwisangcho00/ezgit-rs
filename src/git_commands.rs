@@ -1,4 +1,6 @@
-use git2::{BranchType, Cred, MergeOptions, PushOptions, RemoteCallbacks, Repository, Signature};
+use git2::{BranchType, Cred, MergeOptions, PushOptions, RemoteCallbacks, Repository, Signature, DiffOptions};
+use chrono::{DateTime, Local};
+use std::{collections::HashSet, path::Path, time::{SystemTime, UNIX_EPOCH}};
 
 use log::debug;
 
@@ -48,22 +50,108 @@ pub fn checkout_branch(repo_path: &str, branch_name: &str) -> Result<(), String>
     Ok(())
 }
 
+
 pub fn get_commit_details(repo_path: &str, commit_hash: &str) -> Result<String, String> {
     let repo = Repository::open(repo_path).map_err(|e| e.to_string())?;
     let oid = repo.revparse_single(commit_hash).map_err(|e| e.to_string())?.id();
     let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
 
+    // Format the commit date
+    let commit_time = commit.time().seconds();
+    let naive_datetime = chrono::DateTime::<chrono::Utc>::from_timestamp(commit_time, 0)
+        .unwrap()
+        .naive_utc();
+    let commit_date: DateTime<Local> = DateTime::from_naive_utc_and_offset(naive_datetime, *Local::now().offset());
+    let formatted_date = commit_date.format("%Y-%m-%d %H:%M:%S").to_string();
+
+    // Calculate elapsed time
+    let elapsed_seconds = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs() as i64 - commit_time)
+        .unwrap_or(0);
+    let elapsed_time = if elapsed_seconds < 60 {
+        format!("{} seconds ago", elapsed_seconds)
+    } else if elapsed_seconds < 3600 {
+        format!("{} minutes ago", elapsed_seconds / 60)
+    } else if elapsed_seconds < 86400 {
+        format!("{} hours ago", elapsed_seconds / 3600)
+    } else {
+        format!("{} days ago", elapsed_seconds / 86400)
+    };
+
+    // Fetch parent(s)
+    let parents: Vec<String> = commit
+        .parents()
+        .map(|parent| format!("{} ({})", parent.id(), parent.summary().unwrap_or("No message")))
+        .collect();
+
+    // Fetch changes
+    let tree = commit.tree().map_err(|e| e.to_string())?;
+    let parent_tree = if let Some(parent) = commit.parents().next() {
+        parent.tree().ok()
+    } else {
+        None
+    };
+
+    let diff = repo
+        .diff_tree_to_tree(parent_tree.as_ref(), Some(&tree), Some(&mut DiffOptions::new()))
+        .map_err(|e| e.to_string())?;
+
+    let mut added = 0;
+    let mut deleted = 0;
+    let mut file_changes: HashSet<String> = HashSet::new(); // Use HashSet for unique file changes
+
+    diff.print(git2::DiffFormat::Patch, |delta, _hunk, line| {
+        // Track unique file-level changes
+        match delta.status() {
+            git2::Delta::Modified => {
+                file_changes.insert(format!(
+                    "Modified: {}",
+                    delta.old_file().path().unwrap_or_else(|| Path::new("")).display()
+                ));
+            }
+            git2::Delta::Added => {
+                file_changes.insert(format!(
+                    "Added: {}",
+                    delta.new_file().path().unwrap_or_else(|| Path::new("")).display()
+                ));
+            }
+            git2::Delta::Deleted => {
+                file_changes.insert(format!(
+                    "Deleted: {}",
+                    delta.old_file().path().unwrap_or_else(|| Path::new("")).display()
+                ));
+            }
+            _ => {}
+        }
+        // Track line-level changes
+        match line.origin() {
+            '+' => added += 1,
+            '-' => deleted += 1,
+            _ => {}
+        }
+        true
+    })
+    .map_err(|e| e.to_string())?;
+
+    // Prepare the output details
     let details = format!(
-        "Commit Hash: {}\nAuthor: {} <{}>\nDate: {}\n\nMessage:\n{}",
+        "Commit Hash: {}\nAuthor: {} <{}>\nDate: {}\nElapsed Time: {}\n\nMessage:\n{}\n\nParent(s):\n{}\n\nChanges:\n{}\n- Lines Added: {}\n- Lines Deleted: {}",
         commit.id(),
         commit.author().name().unwrap_or("Unknown"),
         commit.author().email().unwrap_or("Unknown"),
-        commit.time().seconds(),
-        commit.message().unwrap_or("No message")
+        formatted_date,
+        elapsed_time,
+        commit.message().unwrap_or("No message"),
+        parents.join("\n"),
+        file_changes.into_iter().collect::<Vec<_>>().join("\n"),
+        added,
+        deleted
     );
 
     Ok(details)
 }
+
 
 pub fn commit_and_push(repo_path: &str, commit_message: &str) -> Result<(), String> {
     dotenv().ok();
