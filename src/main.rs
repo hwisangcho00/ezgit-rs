@@ -4,7 +4,7 @@ use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
-use ratatui::style::{Style, Color};
+use ratatui::style::{Color, Modifier, Style};
 use ezgit_rs::git_commands;
 use ezgit_rs::app_state::{AppState, Panel, UIState};
 use ezgit_rs::events::handle_event;
@@ -82,42 +82,41 @@ fn main() -> Result<(), io::Error> {
 
                     f.render_widget(commit_list, chunks[0]);
         
-                    // Render Branch List
-                    let branch_items: Vec<ListItem> = app_state
-                        .branches
+        
+                    let branch_chunk_height = chunks[1].height as usize; // Height of the branches chunk
+                    app_state.branch_visible_count = branch_chunk_height; // Dynamically set visible count
+                    app_state.update_branch_visible_range(); // Update visible range
+                    
+                    // Render only visible branches
+                    let visible_branches = &app_state.branches[app_state.branch_visible_range.0..app_state.branch_visible_range.1];
+                    let branch_items: Vec<ListItem> = visible_branches
                         .iter()
                         .enumerate()
                         .map(|(i, branch)| {
-                            let mut style = if i == app_state.selected_branch {
-                                Style::default().fg(Color::Yellow) // Highlight the selected branch
+                            let global_index = app_state.branch_visible_range.0 + i;
+                    
+                            // Determine style for the current branch
+                            let style = if branch == &app_state.branch_name {
+                                // Current branch style
+                                Style::default()
+                                    .fg(Color::White)
+                                    .bg(Color::Green)
+                                    .add_modifier(Modifier::BOLD)
+                            } else if global_index == app_state.selected_branch {
+                                // Navigated branch style
+                                Style::default().fg(Color::Yellow)
                             } else {
+                                // Default style
                                 Style::default()
                             };
-
-                            // Apply bold style if the branch is the current branch
-                            if branch == &app_state.branch_name {
-                                style = style
-                                    .add_modifier(ratatui::style::Modifier::BOLD)
-                                    .bg(Color::Gray);
-                            }
-
+                    
                             ListItem::new(branch.clone()).style(style)
                         })
                         .collect();
-
-                    let branch_list = List::new(branch_items).block(
-                        Block::default()
-                            .title("Branches")
-                            .borders(Borders::ALL)
-                            .border_style(
-                                if matches!(app_state.focused_panel, Panel::Branches) {
-                                    focused_style
-                                } else {
-                                    unfocused_style
-                                },
-                            ),
-                    );
-
+                    
+                    let branch_list = List::new(branch_items)
+                        .block(Block::default().title("Branches").borders(Borders::ALL));
+                    
                     f.render_widget(branch_list, chunks[1]);
                     
                 },

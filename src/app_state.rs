@@ -35,6 +35,8 @@ pub struct AppState {
     pub visible_count: usize,
     pub branches: Vec<String>,       // Branch list
     pub selected_branch: usize,      // Selected branch index
+    pub branch_visible_range: (usize, usize),
+    pub branch_visible_count: usize,
     pub focused_panel: Panel,        // Currently focused panel
     pub selected_commit_details: Option<String>,
     pub ui_state: UIState,
@@ -68,6 +70,8 @@ impl AppState {
             visible_count: 10,
             branches,
             selected_branch,
+            branch_visible_range: (0, 0),
+            branch_visible_count: 10,
             focused_panel: Panel::CommitLog,
             selected_commit_details: None,
             ui_state: UIState::Normal,
@@ -98,6 +102,26 @@ impl AppState {
         }
     }
 
+    pub fn update_branch_visible_range(&mut self) {
+        let start = self.selected_branch.saturating_sub(self.branch_visible_count / 2);
+        let end = (start + self.branch_visible_count).min(self.branches.len());
+        self.branch_visible_range = (start, end);
+    }
+
+    pub fn select_previous_branch(&mut self) {
+        if self.selected_branch > 0 {
+            self.selected_branch -= 1;
+            self.update_branch_visible_range();
+        }
+    }
+
+    pub fn select_next_branch(&mut self) {
+        if self.selected_branch < self.branches.len() - 1 {
+            self.selected_branch += 1;
+            self.update_branch_visible_range();
+        }
+    }
+
     pub fn focus_next_panel(&mut self) {
         self.focused_panel = match self.focused_panel {
             Panel::CommitLog => Panel::Branches,
@@ -120,18 +144,6 @@ impl AppState {
             if self.selected_index >= self.visible_range.1 {
                 self.scroll_down();
             }
-        }
-    }
-
-    pub fn select_previous_branch(&mut self) {
-        if self.selected_branch > 0 {
-            self.selected_branch -= 1;
-        }
-    }
-
-    pub fn select_next_branch(&mut self) {
-        if self.selected_branch < self.branches.len() - 1 {
-            self.selected_branch += 1;
         }
     }
 
