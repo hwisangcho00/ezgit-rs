@@ -165,9 +165,9 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
 
                     Panel::CommitLog => {
                         let selected_commit = &app_state.commit_log[app_state.selected_index];
-                        let selected_commit_hash = &selected_commit.split(":").next().unwrap_or("");
+                        let commit_hash = selected_commit.split(" | ").next().unwrap_or("");
         
-                        match git_commands::get_commit_details(".", selected_commit_hash) {
+                        match git_commands::get_commit_details(".", commit_hash) {
                             Ok(details) => {
                                 app_state.set_selected_commit_details(details);
                                 app_state.ui_state = UIState::CommitDetails; // Transition to CommitDetails state
