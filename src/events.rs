@@ -107,6 +107,7 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 UIState::CommitDetails => {
                     // Scroll up in commit details
                     app_state.scroll_commit_details_up(1);
+                    debug!("Scrolled up in commit details");
                 }
                 UIState::Normal => match app_state.focused_panel {
                     Panel::CommitLog => app_state.select_previous(),
@@ -120,6 +121,7 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 UIState::CommitDetails => {
                     // Scroll down in commit details
                     app_state.scroll_commit_details_down(1);
+                    debug!("Scrolled down in commit details");
                 }
                 UIState::Normal => match app_state.focused_panel {
                     Panel::CommitLog => app_state.select_next(),

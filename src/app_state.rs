@@ -171,15 +171,17 @@ impl AppState {
         let (start, end) = self.commit_details_visible_range;
         if start > 0 {
             let new_start = start.saturating_sub(lines);
-            self.commit_details_visible_range = (new_start, new_start + (end - start));
+            let new_end = usize::min(new_start + (end - start), self.commit_details_total_lines);
+            self.commit_details_visible_range = (new_start, new_end);
         }
     }
-
+    
     pub fn scroll_commit_details_down(&mut self, lines: usize) {
         let (start, end) = self.commit_details_visible_range;
         if end < self.commit_details_total_lines {
             let new_end = usize::min(end + lines, self.commit_details_total_lines);
-            self.commit_details_visible_range = (new_end - (end - start), new_end);
+            let new_start = new_end.saturating_sub(end - start);
+            self.commit_details_visible_range = (new_start, new_end);
         }
     }
 
