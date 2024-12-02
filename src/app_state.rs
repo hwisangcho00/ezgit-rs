@@ -33,6 +33,7 @@ pub struct AppState {
     pub commit_log: Vec<String>,     // Commit log
     pub visible_range: (usize, usize), // Visible range of commits
     pub visible_count: usize,
+    pub horizontal_offset: usize,
     pub branches: Vec<String>,       // Branch list
     pub selected_branch: usize,      // Selected branch index
     pub branch_visible_range: (usize, usize),
@@ -70,6 +71,7 @@ impl AppState {
             commit_log,
             visible_range: (0, 0),
             visible_count: 10,
+            horizontal_offset: 0,
             branches,
             selected_branch,
             branch_visible_range: (0, 0),

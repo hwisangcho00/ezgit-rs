@@ -1,13 +1,11 @@
 use git2::{BranchType, Cred, MergeOptions, PushOptions, RemoteCallbacks, Repository, Signature, DiffOptions};
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, Utc};
 use std::{collections::HashSet, path::Path, time::{SystemTime, UNIX_EPOCH}};
 
 use log::debug;
 
 use std::env;
 use dotenv::dotenv;
-
-
 
 pub fn get_commit_log(repo_path: &str) -> Vec<String> {
     let repo = Repository::open(repo_path).expect("Failed to open repository");
@@ -17,7 +15,26 @@ pub fn get_commit_log(repo_path: &str) -> Vec<String> {
     revwalk
         .filter_map(|oid| oid.ok())
         .filter_map(|oid| repo.find_commit(oid).ok())
-        .map(|commit| format!("{}: {}", commit.id(), commit.summary().unwrap_or("No message")))
+        .map(|commit| {
+            // Shortened commit ID
+            let short_id = &commit.id().to_string()[..7];
+
+            // Format the commit date
+            let timestamp = commit.time().seconds();
+            let utc_datetime = DateTime::<Utc>::from_timestamp(timestamp, 0);
+            let local_datetime = utc_datetime.unwrap().with_timezone(&Local);
+            let formatted_date = local_datetime.format("%Y-%m-%d").to_string();
+
+            // Author
+            let binding = commit.author();
+            let author = binding.name().unwrap_or("Unknown");
+
+            // Summary
+            let summary = commit.summary().unwrap_or("No message");
+
+            // Combine all fields
+            format!("{:<7} | {:<10} | {:<12} | {}", short_id, formatted_date, author, summary)
+        })
         .collect()
 }
 

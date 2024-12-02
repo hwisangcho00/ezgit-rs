@@ -53,18 +53,27 @@ fn main() -> Result<(), io::Error> {
                     app_state.visible_count = commit_chunk_height; // Dynamically update visible count
                     app_state.update_visible_range();             // Update visible range based on selected index
 
-                    // Render Commit Log
+                    // Render Commit Log with horizontal scrolling
                     let visible_commits = &app_state.commit_log[app_state.visible_range.0..app_state.visible_range.1];
                     let commit_items: Vec<ListItem> = visible_commits
                         .iter()
                         .enumerate()
                         .map(|(i, commit)| {
                             let global_index = app_state.visible_range.0 + i;
+                            
+                            // Apply horizontal offset
+                            let truncated_commit = if app_state.horizontal_offset < commit.len() {
+                                &commit[app_state.horizontal_offset..]
+                            } else {
+                                ""
+                            };
+
+                            // Highlight selected commit
                             if global_index == app_state.selected_index {
-                                ListItem::new(commit.clone())
+                                ListItem::new(truncated_commit.to_string())
                                     .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow))
                             } else {
-                                ListItem::new(commit.clone())
+                                ListItem::new(truncated_commit.to_string())
                             }
                         })
                         .collect();
@@ -223,6 +232,7 @@ fn main() -> Result<(), io::Error> {
                         "  - Enter: Select item, confirm action, or proceed",
                         "  - Tab: Switch between Commit Log and Branches panel",
                         "  - ↑/↓: Navigate through items in the current panel",
+                        "  - ←/→: Scroll horizontally in the Commit Log",
                         "  - c: Start the commit workflow (add, commit, and push changes)",
                         "  - b: Create and switch to a new branch",
                         "  - r: Refresh the Commit Log and Branches list",

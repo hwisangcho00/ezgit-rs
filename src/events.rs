@@ -128,6 +128,16 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 _ => {}
             }
         },
+        Some(input::Action::NavigateLeft) => {
+            if matches!(app_state.focused_panel, Panel::CommitLog) && app_state.horizontal_offset > 0 {
+                app_state.horizontal_offset -= 1;
+            }
+        },
+        Some(input::Action::NavigateRight) => {
+            if matches!(app_state.focused_panel, Panel::CommitLog) {
+                app_state.horizontal_offset += 1; // Increase the offset to scroll right
+            }
+        },
         Some(input::Action::Select) => match app_state.ui_state {
             UIState::ConfirmQuit => {
                 return Ok(true); // Exit the program
