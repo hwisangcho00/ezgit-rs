@@ -102,13 +102,31 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 _ => debug!("Quit action ignored in current UIState"),
             }
         },
-        Some(input::Action::NavigateUp) => match app_state.focused_panel {
-            Panel::CommitLog => app_state.select_previous(),
-            Panel::Branches => app_state.select_previous_branch(),
+        Some(input::Action::NavigateUp) => {
+            match app_state.ui_state {
+                UIState::CommitDetails => {
+                    // Scroll up in commit details
+                    app_state.scroll_commit_details_up(1);
+                }
+                UIState::Normal => match app_state.focused_panel {
+                    Panel::CommitLog => app_state.select_previous(),
+                    Panel::Branches => app_state.select_previous_branch(),
+                },
+                _ => {}
+            }
         },
-        Some(input::Action::NavigateDown) => match app_state.focused_panel {
-            Panel::CommitLog => app_state.select_next(),
-            Panel::Branches => app_state.select_next_branch(),
+        Some(input::Action::NavigateDown) => {
+            match app_state.ui_state {
+                UIState::CommitDetails => {
+                    // Scroll down in commit details
+                    app_state.scroll_commit_details_down(1);
+                }
+                UIState::Normal => match app_state.focused_panel {
+                    Panel::CommitLog => app_state.select_next(),
+                    Panel::Branches => app_state.select_next_branch(),
+                },
+                _ => {}
+            }
         },
         Some(input::Action::Select) => match app_state.ui_state {
             UIState::ConfirmQuit => {

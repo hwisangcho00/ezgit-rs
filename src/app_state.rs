@@ -41,6 +41,8 @@ pub struct AppState {
     pub selected_commit_details: Option<String>,
     pub ui_state: UIState,
     pub commit_state: Option<CommitState>,
+    pub commit_details_visible_range: (usize, usize),
+    pub commit_details_total_lines: usize,
     pub input_mode: InputMode,
     pub branch_name: String,
     pub error_message: Option<String>,
@@ -76,6 +78,8 @@ impl AppState {
             selected_commit_details: None,
             ui_state: UIState::Normal,
             commit_state: None,
+            commit_details_visible_range: (0, 0),
+            commit_details_total_lines: 0,
             input_mode: InputMode::Command,
             branch_name: current_branch,
             error_message: None,
@@ -153,6 +157,28 @@ impl AppState {
 
     pub fn clear_selected_commit_details(&mut self) {
         self.selected_commit_details = None;
+    }
+
+    pub fn update_commit_details_visible_range(&mut self, chunk_height: usize) {
+        let (start, _) = self.commit_details_visible_range;
+        let end = usize::min(start + chunk_height, self.commit_details_total_lines);
+        self.commit_details_visible_range = (start, end);
+    }
+
+    pub fn scroll_commit_details_up(&mut self, lines: usize) {
+        let (start, end) = self.commit_details_visible_range;
+        if start > 0 {
+            let new_start = start.saturating_sub(lines);
+            self.commit_details_visible_range = (new_start, new_start + (end - start));
+        }
+    }
+
+    pub fn scroll_commit_details_down(&mut self, lines: usize) {
+        let (start, end) = self.commit_details_visible_range;
+        if end < self.commit_details_total_lines {
+            let new_end = usize::min(end + lines, self.commit_details_total_lines);
+            self.commit_details_visible_range = (new_end - (end - start), new_end);
+        }
     }
 
 }

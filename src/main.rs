@@ -178,13 +178,18 @@ fn main() -> Result<(), io::Error> {
                         .constraints([Constraint::Percentage(100)])
                         .split(f.area());
                 
-                    let details = app_state.selected_commit_details.as_deref().unwrap_or("No details available");
+                    let details = app_state.selected_commit_details.clone().unwrap_or("No details available".to_string());
+                    let details_lines: Vec<&str> = details.lines().collect();
+                    app_state.commit_details_total_lines = details_lines.len();
+                    let height = chunks[0].height as usize;
+                    app_state.update_commit_details_visible_range(height);
                 
+                    let visible_lines = &details_lines[app_state.commit_details_visible_range.0..app_state.commit_details_visible_range.1];
                     let details_widget = Block::default()
                         .title("Commit Details (Press Esc to Return)")
                         .borders(Borders::ALL);
                 
-                    let details_paragraph = ratatui::widgets::Paragraph::new(details)
+                    let details_paragraph = ratatui::widgets::Paragraph::new(visible_lines.join("\n"))
                         .block(details_widget)
                         .wrap(ratatui::widgets::Wrap { trim: false });
                 
