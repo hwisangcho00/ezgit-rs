@@ -30,7 +30,7 @@ fn main() -> Result<(), io::Error> {
     // Main event loop
     loop {
         // Draw UI
-        terminal.draw(|f| {
+        terminal.draw(|f    | {
 
             match app_state.ui_state {
                 UIState::Normal => {
@@ -122,7 +122,7 @@ fn main() -> Result<(), io::Error> {
                         .collect();
 
                     let branch_list = List::new(branch_items)
-                        .block(Block::default().title("Branches").borders(Borders::ALL).border_style(if matches!(app_state.focused_panel, Panel::CommitLog) {
+                        .block(Block::default().title("Branches").borders(Borders::ALL).border_style(if matches!(app_state.focused_panel, Panel::Branches) {
                             focused_style
                         } else {
                             unfocused_style
