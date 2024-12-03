@@ -245,6 +245,7 @@ fn main() -> Result<(), io::Error> {
                         "  - r: Refresh the Commit Log and Branches list",
                         "  - g: Open this Key Guide",
                         "  - m: Merge the current branch into the main or master branch",
+                        "  - f: Filter commits by a specific file",
                     ];
 
                     let key_guide = Paragraph::new(key_guide_text.join("\n"))

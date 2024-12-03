@@ -119,6 +119,7 @@ This guide provides a summary of all key bindings available in **EZGit-RS**.
 - **`Esc` (in Commit Details)**: Return to the normal state from the Commit Details view.
 - **`PageUp`**: Scroll up within the commit details.
 - **`PageDown`**: Scroll down within the commit details.
+- **`f`**: Filter commits by a specific file.
 
 ## Branch Management
 - **`b`**: Create a new branch and switch to it.
