@@ -93,9 +93,10 @@ ls target/release/ezgit-rs
 mv target/release/ezgit-rs ~/.local/bin/ezgit
 ```
 3-2. Make sure ~/.local/bin is in your PATH
+For example, zsh user can use the following cmd
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
-source ~/.zshrc or source ~/.bashrc
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
 ```
 4. Run the Program You can now run the program from anywhere:
 ```bash
