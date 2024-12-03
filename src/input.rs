@@ -16,6 +16,7 @@ pub enum Action {
     CreateBranch,
     ShowKeyGuide,
     MergeBranch,
+    FilterCommitsByFile,
 
     // Text input actions
     TextInput(char), // Character input for text mode
@@ -53,6 +54,7 @@ pub fn handle_user_input(is_text_mode: bool) -> Result<Option<Action>, std::io::
                     KeyCode::Char('b') => Some(Action::CreateBranch),
                     KeyCode::Char('g') => Some(Action::ShowKeyGuide),
                     KeyCode::Char('m') => Some(Action::MergeBranch),
+                    KeyCode::Char('f') => Some(Action::FilterCommitsByFile),
                     _ => None,
                 });
             }

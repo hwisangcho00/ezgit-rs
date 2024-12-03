@@ -42,8 +42,7 @@ fn main() -> Result<(), io::Error> {
                         Constraint::Percentage(30), // Branch List
                     ])
                     .split(f.area());
-    
-    
+
                     // Style for focused and unfocused panels
                     let focused_style = Style::default().fg(Color::Yellow);
                     let unfocused_style = Style::default();
@@ -60,7 +59,7 @@ fn main() -> Result<(), io::Error> {
                         .enumerate()
                         .map(|(i, commit)| {
                             let global_index = app_state.visible_range.0 + i;
-                            
+
                             // Apply horizontal offset
                             let truncated_commit = if app_state.horizontal_offset < commit.len() {
                                 &commit[app_state.horizontal_offset..]
@@ -90,12 +89,11 @@ fn main() -> Result<(), io::Error> {
                     );
 
                     f.render_widget(commit_list, chunks[0]);
-        
-        
+
                     let branch_chunk_height = chunks[1].height as usize; // Height of the branches chunk
                     app_state.branch_visible_count = branch_chunk_height; // Dynamically set visible count
                     app_state.update_branch_visible_range(); // Update visible range
-                    
+
                     // Render only visible branches
                     let visible_branches = &app_state.branches[app_state.branch_visible_range.0..app_state.branch_visible_range.1];
                     let branch_items: Vec<ListItem> = visible_branches
@@ -103,7 +101,7 @@ fn main() -> Result<(), io::Error> {
                         .enumerate()
                         .map(|(i, branch)| {
                             let global_index = app_state.branch_visible_range.0 + i;
-                    
+
                             // Determine style for the current branch
                             let style = if branch == &app_state.branch_name {
                                 // Current branch style
@@ -118,16 +116,20 @@ fn main() -> Result<(), io::Error> {
                                 // Default style
                                 Style::default()
                             };
-                    
+
                             ListItem::new(branch.clone()).style(style)
                         })
                         .collect();
-                    
+
                     let branch_list = List::new(branch_items)
-                        .block(Block::default().title("Branches").borders(Borders::ALL));
-                    
+                        .block(Block::default().title("Branches").borders(Borders::ALL).border_style(if matches!(app_state.focused_panel, Panel::CommitLog) {
+                            focused_style
+                        } else {
+                            unfocused_style
+                        }));
+
                     f.render_widget(branch_list, chunks[1]);
-                    
+
                 },
 
                 UIState::CommitMessage => {
@@ -173,11 +175,11 @@ fn main() -> Result<(), io::Error> {
                         .margin(1)
                         .constraints([Constraint::Percentage(100)])
                         .split(f.area());
-                
+
                     let quit_prompt = Block::default()
                         .title("Are you sure you want to quit? (Press Enter to Confirm, Esc to Cancel)")
                         .borders(Borders::ALL);
-                
+
                     f.render_widget(quit_prompt, chunks[0]);
                 },
                 UIState::CommitDetails => {
@@ -186,26 +188,26 @@ fn main() -> Result<(), io::Error> {
                     .margin(1)
                     .constraints([Constraint::Percentage(100)])
                     .split(f.area());
-            
+
                     let details = app_state.selected_commit_details.clone().unwrap_or("No details available".to_string());
                     let details_lines: Vec<&str> = details.lines().collect();
                     app_state.commit_details_total_lines = details_lines.len();
-                
+
                     // Update visible range based on chunk height
                     let height = (chunks[0].height as usize).saturating_sub(2); // Account for borders
                     app_state.update_commit_details_visible_range(height);
-                
+
                     let (start, end) = app_state.commit_details_visible_range;
                     let visible_lines: Vec<&str> = details_lines[start..end].to_vec();
-                
+
                     let details_widget = Block::default()
                         .title("Commit Details (Press Esc to Return)")
                         .borders(Borders::ALL);
-                
+
                     let details_paragraph = ratatui::widgets::Paragraph::new(visible_lines.join("\n"))
                         .block(details_widget)
                         .wrap(ratatui::widgets::Wrap { trim: false });
-                
+
                     f.render_widget(details_paragraph, chunks[0]);
                 },
                 UIState::CreateBranch => {
@@ -214,13 +216,13 @@ fn main() -> Result<(), io::Error> {
                         .margin(1)
                         .constraints([Constraint::Percentage(100)])
                         .split(f.area());
-                
+
                     let input = app_state.branch_name.clone();
                     let prompt = format!("Enter new branch name: {}", input);
-                
+
                     let branch_prompt = Paragraph::new(prompt)
                         .block(Block::default().title("Create Branch").borders(Borders::ALL));
-                
+
                     f.render_widget(branch_prompt, chunks[0]);
                 },
                 UIState::KeyGuide => {
@@ -229,7 +231,7 @@ fn main() -> Result<(), io::Error> {
                     .margin(1)
                     .constraints([Constraint::Percentage(100)])
                     .split(f.area());
-            
+
                     let key_guide_text = vec![
                         "  - q: Quit the application",
                         "  - Esc: Cancel current action, return to the previous screen, or exit error messages",
@@ -244,12 +246,11 @@ fn main() -> Result<(), io::Error> {
                         "  - g: Open this Key Guide",
                         "  - m: Merge the current branch into the main or master branch",
                     ];
-                    
-                
+
                     let key_guide = Paragraph::new(key_guide_text.join("\n"))
                         .block(Block::default().title("Key Guide").borders(Borders::ALL))
                         .wrap(ratatui::widgets::Wrap { trim: false });
-                
+
                     f.render_widget(key_guide, chunks[0]);
                 },
                 UIState::ConfirmMerge => {
@@ -258,12 +259,12 @@ fn main() -> Result<(), io::Error> {
                         .margin(1)
                         .constraints([Constraint::Percentage(100)])
                         .split(f.area());
-                
+
                     let confirmation_text = "Are you sure you want to merge into the main/master branch?\nPress Enter to confirm or Esc to cancel.";
                     let confirmation = Paragraph::new(confirmation_text)
                         .block(Block::default().title("Confirm Merge").borders(Borders::ALL))
                         .wrap(ratatui::widgets::Wrap { trim: false });
-                
+
                     f.render_widget(confirmation, chunks[0]);
                 },
                 UIState::Error => {
@@ -272,14 +273,28 @@ fn main() -> Result<(), io::Error> {
                         .margin(1)
                         .constraints([Constraint::Percentage(100)])
                         .split(f.area());
-                
+
                     let error_message = app_state.error_message.clone().unwrap_or("Unknown error".to_string());
                     let error_paragraph = Paragraph::new(error_message)
                         .block(Block::default().title("Error").borders(Borders::ALL))
                         .wrap(ratatui::widgets::Wrap { trim: false });
-                
+
                     f.render_widget(error_paragraph, chunks[0]);
-                }
+                },
+                UIState::FilterByFile => {
+                    let chunks = Layout::default()
+                        .direction(Direction::Vertical)
+                        .margin(1)
+                        .constraints([Constraint::Percentage(100)])
+                        .split(f.area());
+
+                    let input = app_state.branch_name.clone();
+                    let prompt = format!("Enter file name to filter commits by: {}", input);
+                    let filter_prompt = Paragraph::new(prompt)
+                        .block(Block::default().title("Filter Commits by File").borders(Borders::ALL));
+
+                    f.render_widget(filter_prompt, chunks[0]);
+                },
             }
         })?;
 

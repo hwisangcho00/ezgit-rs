@@ -20,6 +20,9 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
             UIState::CreateBranch => {
                 app_state.branch_name.push(c); // Add character to branch name
             }
+            UIState::FilterByFile => {
+                app_state.branch_name.push(c);
+            }
             _ => {}
         },
         Some(input::Action::Backspace) => match app_state.ui_state {
@@ -30,6 +33,9 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
             }
             UIState::CreateBranch => {
                 app_state.branch_name.pop(); // Remove last character from branch name
+            }
+            UIState::FilterByFile => {
+                app_state.branch_name.pop();
             }
             _ => {}
         },
@@ -79,6 +85,26 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
                     app_state.ui_state = UIState::Normal; // Return to normal state
                     app_state.input_mode = InputMode::Command;
                 }
+                UIState::FilterByFile => {
+                    let file_path = app_state.branch_name.trim().to_string();
+                    if !file_path.is_empty() {
+                        let filtered_commits = git_commands::get_commits_for_file(".", &file_path);
+                        if !filtered_commits.is_empty() {
+                            app_state.commit_log = filtered_commits;
+                            app_state.selected_index = 0; // Reset selected index to the top
+                            app_state.visible_range = (0, 0); // Reset visible range
+                            app_state.update_visible_range(); // Update visible range dynamically
+                            debug!("Filtered commits for file: {}", file_path);
+                        } else {
+                            debug!("No commits found for file: {}", file_path);
+                        }
+                    } else {
+                        debug!("No file path provided for filtering");
+                    }
+                    app_state.branch_name.clear(); // Clear the input
+                    app_state.ui_state = UIState::Normal;
+                    app_state.input_mode = InputMode::Command;
+                }
                 _ => {
                     debug!("Confirm action ignored in current UIState");
                 }
@@ -88,7 +114,7 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
         Some(input::Action::Cancel) => {
             app_state.ui_state = UIState::Normal;
             app_state.commit_state = None;
-            app_state.branch_name = String::new();
+            app_state.branch_name.clear();
             app_state.input_mode = InputMode::Command; // Switch back to Command Mode
         }
         _ => {}
@@ -245,10 +271,24 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
             app_state.focus_next_panel();
         }
         Some(input::Action::Refresh) => {
+            // Refresh commit log
             app_state.commit_log = crate::git_commands::get_commit_log(".");
+            app_state.selected_index = 0; // Reset commit selection
+            app_state.visible_range = (0, app_state.visible_count); // Reset visible range for commits
+
+            // Refresh branches
             app_state.branches = crate::git_commands::get_branches(".");
-            app_state.selected_index = 0;
-            app_state.selected_branch = 0;
+            app_state.selected_branch = app_state
+                .branches
+                .iter()
+                .position(|branch| branch == &app_state.branch_name)
+                .unwrap_or(0); // Reset to current branch or default to the first branch
+            app_state.branch_visible_range = (0, app_state.branch_visible_count); // Reset visible range for branches
+
+            // Reset commit details
+            app_state.selected_commit_details = None; // Clear selected commit details
+            app_state.commit_details_total_lines = 0; // Reset commit details total lines
+            app_state.commit_details_visible_range = (0, 0); // Reset commit details visible range
         }
         // Handle Deselect (Esc key) for canceling actions
         Some(input::Action::Deselect) => match app_state.ui_state {
@@ -301,6 +341,13 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
         }
         Some(input::Action::MergeBranch) => {
             app_state.ui_state = UIState::ConfirmMerge;
+        }
+        Some(input::Action::FilterCommitsByFile) => {
+            if app_state.ui_state == UIState::Normal {
+                app_state.ui_state = UIState::FilterByFile;
+                app_state.input_mode = InputMode::Text;
+                app_state.branch_name = String::new();
+            }
         }
 
         _ => {}

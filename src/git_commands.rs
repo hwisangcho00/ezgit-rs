@@ -154,19 +154,11 @@ pub fn get_commit_details(repo_path: &str, commit_hash: &str) -> Result<String, 
         match line.origin() {
             '+' => {
                 added += 1;
-                entry.push(format!(
-                    "+{:4} {}",
-                    line.new_lineno().unwrap_or(0),
-                    content
-                ));
+                entry.push(format!("+{:4} {}", line.new_lineno().unwrap_or(0), content));
             }
             '-' => {
                 deleted += 1;
-                entry.push(format!(
-                    "-{:4} {}",
-                    line.old_lineno().unwrap_or(0),
-                    content
-                ));
+                entry.push(format!("-{:4} {}", line.old_lineno().unwrap_or(0), content));
             }
             _ => {}
         }
@@ -438,4 +430,66 @@ pub fn merge_into_branch(repo_path: &str, target_branch: &str) -> Result<(), Str
     Ok(())
 }
 
-// Will this work?
+pub fn get_commits_for_file(repo_path: &str, file_path: &str) -> Vec<String> {
+    let repo = Repository::open(repo_path).expect("Failed to open repository");
+    let mut revwalk = repo.revwalk().expect("Failed to create revwalk");
+    revwalk.push_head().expect("Failed to push head");
+
+    revwalk
+        .filter_map(|oid| oid.ok())
+        .filter_map(|oid| {
+            let commit = repo.find_commit(oid).ok()?;
+            let tree = commit.tree().ok()?;
+            let parent_tree = commit
+                .parents()
+                .next()
+                .and_then(|parent| parent.tree().ok());
+
+            let diff = repo
+                .diff_tree_to_tree(parent_tree.as_ref(), Some(&tree), None)
+                .ok()?;
+            let mut file_changed = false;
+
+            diff.foreach(
+                &mut |delta, _| {
+                    if let Some(path) = delta.new_file().path() {
+                        if path == Path::new(file_path) {
+                            file_changed = true;
+                        }
+                    }
+                    true
+                },
+                None,
+                None,
+                None,
+            )
+            .ok()?;
+
+            if file_changed {
+                // Shortened commit ID
+                let short_id = &commit.id().to_string()[..7];
+
+                // Format the commit date
+                let timestamp = commit.time().seconds();
+                let utc_datetime = DateTime::<Utc>::from_timestamp(timestamp, 0);
+                let local_datetime = utc_datetime.unwrap().with_timezone(&Local);
+                let formatted_date = local_datetime.format("%Y-%m-%d").to_string();
+
+                // Author
+                let binding = commit.author();
+                let author = binding.name().unwrap_or("Unknown");
+
+                // Summary
+                let summary = commit.summary().unwrap_or("No message");
+
+                // Combine all fields
+                Some(format!(
+                    "{:<7} | {:<10} | {:<12} | {}",
+                    short_id, formatted_date, author, summary
+                ))
+            } else {
+                None
+            }
+        })
+        .collect()
+}

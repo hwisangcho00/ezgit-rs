@@ -16,6 +16,7 @@ pub enum UIState {
     KeyGuide,
     ConfirmMerge,
     Error,
+    FilterByFile,
 }
 
 pub struct CommitState {
