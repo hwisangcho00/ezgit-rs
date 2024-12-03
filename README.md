@@ -97,17 +97,45 @@ mv target/release/ezgit-rs ~/.local/bin/ezgit
 ezgit
 ```
 
-## Key Bindings
+# EZGit-RS Key Guide
 
-| Key               | Action                                                                 |
-|--------------------|------------------------------------------------------------------------|
-| `q`               | Quit the application (confirmation required).                         |
-| `Esc`             | Cancel the current action or return to the previous screen.           |
-| `Enter`           | Select an item, confirm an action, or proceed.                        |
-| `Tab`             | Switch between the Commit Log and Branches panels.                   |
-| `↑/↓`             | Navigate through items in the current panel.                          |
-| `c`               | Start the commit workflow to add, commit, and push changes.           |
-| `b`               | Create and switch to a new branch.                                    |
-| `r`               | Refresh the Commit Log and Branches list.                             |
-| `m`               | Merge the current branch into `main` or `master` (confirmation needed). |
-| `g`               | Open the Key Guide for help.                                          |
+This guide provides a summary of all key bindings available in **EZGit-RS**.
+
+## Global Key Bindings
+- **`q`**: Quit the application (requires confirmation).
+- **`Esc`**: Cancel current action or return to the previous screen.
+- **`Enter`**: Select an item, confirm an action, or proceed to the next step.
+- **`Tab`**: Switch between panels (Commit Log and Branches).
+- **`g`**: Show the key guide.
+
+## Navigation
+- **`↑` / `↓`**: Navigate up or down through items in the current panel.
+- **`PageUp`**: Jump one page up in the list.
+- **`PageDown`**: Jump one page down in the list.
+- **`←` / `→`**: Scroll left or right in panels with longer content (e.g., Commit Log).
+
+## Commit Details
+- **`Enter` (on a commit)**: View detailed information about the selected commit.
+- **`Esc` (in Commit Details)**: Return to the normal state from the Commit Details view.
+- **`PageUp`**: Scroll up within the commit details.
+- **`PageDown`**: Scroll down within the commit details.
+
+## Branch Management
+- **`b`**: Create a new branch and switch to it.
+- **`Enter` (on a branch)**: Switch to the selected branch.
+- **Current Branch**: Always highlighted in bold with a distinct background color.
+
+## Commit Workflow
+- **`c`**: Start the commit workflow (stage, commit, and push changes).
+  - Enter commit message, confirm, and push changes to the remote repository.
+
+## Merge Workflow
+- **`m`**: Start the merge workflow:
+  - Confirm merging the current branch into the `main` or `master` branch.
+
+## Refresh
+- **`r`**: Refresh the Commit Log and Branches panels.
+
+---
+
+**Note**: For enhanced usability, actions like `PageUp`, `PageDown`, and branch switching are dynamically reflected in the UI.
