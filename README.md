@@ -2,6 +2,8 @@
 
 **EZGit-RS** is a user-friendly terminal-based Git interface written in Rust. It simplifies common Git operations such as viewing commit logs, managing branches, committing changes, and merging branches, all within an intuitive, text-based user interface.
 
+# Hello demo
+
 ## Features
 - View and scroll through Git commit logs with detailed commit information.
 - Manage branches:
