@@ -12,6 +12,7 @@ use ratatui::Terminal;
 use std::io;
 
 // Merge Test
+// Merge Test2
 
 fn main() -> Result<(), io::Error> {
     // Initialize the logger
