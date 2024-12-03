@@ -36,7 +36,7 @@ pub fn handle_user_input(is_text_mode: bool) -> Result<Option<Action>, std::io::
                     KeyCode::Esc => Some(Action::Cancel),           // Cancel text input
                     _ => None,
                 });
-            } else{
+            } else {
                 return Ok(match key.code {
                     KeyCode::Char('q') => Some(Action::Quit),
                     KeyCode::Char('r') => Some(Action::Refresh),

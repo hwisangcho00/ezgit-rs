@@ -1,15 +1,15 @@
-use std::io;
 use crossterm::{execute, terminal, ExecutableCommand};
-use ratatui::Terminal;
-use ratatui::backend::CrosstermBackend;
-use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
-use ratatui::style::{Color, Modifier, Style};
-use ezgit_rs::git_commands;
 use ezgit_rs::app_state::{AppState, Panel, UIState};
 use ezgit_rs::events::handle_event;
+use ezgit_rs::git_commands;
 use ezgit_rs::logger::Logger;
 use log::info;
+use ratatui::backend::CrosstermBackend;
+use ratatui::layout::{Constraint, Direction, Layout};
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
+use ratatui::Terminal;
+use std::io;
 
 fn main() -> Result<(), io::Error> {
     // Initialize the logger
@@ -284,7 +284,6 @@ fn main() -> Result<(), io::Error> {
         if handle_event(&mut app_state)? {
             break;
         }
-
     }
 
     // Restore terminal

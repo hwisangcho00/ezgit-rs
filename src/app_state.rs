@@ -16,7 +16,6 @@ pub enum UIState {
     KeyGuide,
     ConfirmMerge,
     Error,
-
 }
 
 pub struct CommitState {
@@ -24,21 +23,21 @@ pub struct CommitState {
 }
 
 pub enum InputMode {
-    Command,  // Default mode for handling commands
-    Text,     // Mode for handling text input
+    Command, // Default mode for handling commands
+    Text,    // Mode for handling text input
 }
 
 pub struct AppState {
-    pub selected_index: usize,       // Selected commit index
-    pub commit_log: Vec<String>,     // Commit log
+    pub selected_index: usize,         // Selected commit index
+    pub commit_log: Vec<String>,       // Commit log
     pub visible_range: (usize, usize), // Visible range of commits
     pub visible_count: usize,
     pub horizontal_offset: usize,
-    pub branches: Vec<String>,       // Branch list
-    pub selected_branch: usize,      // Selected branch index
+    pub branches: Vec<String>,  // Branch list
+    pub selected_branch: usize, // Selected branch index
     pub branch_visible_range: (usize, usize),
     pub branch_visible_count: usize,
-    pub focused_panel: Panel,        // Currently focused panel
+    pub focused_panel: Panel, // Currently focused panel
     pub selected_commit_details: Option<String>,
     pub ui_state: UIState,
     pub commit_state: Option<CommitState>,
@@ -50,12 +49,15 @@ pub struct AppState {
 }
 
 impl AppState {
-
     pub fn new(commit_log: Vec<String>, branches: Vec<String>, repo_path: &str) -> Self {
         // Determine the current branch
-        let current_branch = match Repository::open(repo_path)
-            .and_then(|repo| repo.head().and_then(|head| head.shorthand().map(String::from).ok_or(git2::Error::from_str("No branch name"))))
-        {
+        let current_branch = match Repository::open(repo_path).and_then(|repo| {
+            repo.head().and_then(|head| {
+                head.shorthand()
+                    .map(String::from)
+                    .ok_or(git2::Error::from_str("No branch name"))
+            })
+        }) {
             Ok(branch_name) => branch_name,
             Err(_) => String::new(), // Default to an empty string if the branch can't be determined
         };
@@ -89,7 +91,9 @@ impl AppState {
     }
 
     pub fn update_visible_range(&mut self) {
-        let start = self.selected_index.saturating_sub(self.selected_index % self.visible_count);
+        let start = self
+            .selected_index
+            .saturating_sub(self.selected_index % self.visible_count);
         let end = usize::min(start + self.visible_count, self.commit_log.len());
         self.visible_range = (start, end);
     }
@@ -109,7 +113,9 @@ impl AppState {
     }
 
     pub fn update_branch_visible_range(&mut self) {
-        let start = self.selected_branch.saturating_sub(self.branch_visible_count / 2);
+        let start = self
+            .selected_branch
+            .saturating_sub(self.branch_visible_count / 2);
         let end = (start + self.branch_visible_count).min(self.branches.len());
         self.branch_visible_range = (start, end);
     }
@@ -175,7 +181,7 @@ impl AppState {
             self.commit_details_visible_range = (new_start, new_end);
         }
     }
-    
+
     pub fn scroll_commit_details_down(&mut self, lines: usize) {
         let (start, end) = self.commit_details_visible_range;
         if end < self.commit_details_total_lines {
@@ -192,11 +198,12 @@ impl AppState {
             self.update_visible_range();
         }
     }
-    
+
     pub fn jump_commit_log_down(&mut self) {
         let page_size = self.visible_count; // Number of items visible per page
         if self.selected_index < self.commit_log.len() - 1 {
-            self.selected_index = usize::min(self.selected_index + page_size, self.commit_log.len() - 1);
+            self.selected_index =
+                usize::min(self.selected_index + page_size, self.commit_log.len() - 1);
             self.update_visible_range();
         }
     }
@@ -208,13 +215,13 @@ impl AppState {
             self.update_branch_visible_range();
         }
     }
-    
+
     pub fn jump_branches_down(&mut self) {
         let page_size = self.branch_visible_count;
         if self.selected_branch < self.branches.len() - 1 {
-            self.selected_branch = usize::min(self.selected_branch + page_size, self.branches.len() - 1);
+            self.selected_branch =
+                usize::min(self.selected_branch + page_size, self.branches.len() - 1);
             self.update_branch_visible_range();
         }
     }
-
 }

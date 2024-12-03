@@ -1,4 +1,4 @@
-use crate::app_state::{AppState, Panel, UIState, CommitState, InputMode};
+use crate::app_state::{AppState, CommitState, InputMode, Panel, UIState};
 use crate::{git_commands, input};
 use log::debug;
 
@@ -45,7 +45,7 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
                             debug!("Transitioned to ConfirmCommit state");
                         }
                     }
-                },
+                }
                 UIState::ConfirmCommit => {
                     // Perform the commit and push operation
                     if let Some(commit_state) = &app_state.commit_state {
@@ -63,23 +63,28 @@ fn handle_text_mode(app_state: &mut AppState) -> Result<bool, std::io::Error> {
                             }
                         }
                     }
-                },
+                }
                 UIState::CreateBranch => {
-                    if let Err(err) = git_commands::create_and_switch_branch(".", &app_state.branch_name) {
+                    if let Err(err) =
+                        git_commands::create_and_switch_branch(".", &app_state.branch_name)
+                    {
                         debug!("Error creating branch: {}", err);
                     } else {
                         app_state.branches = git_commands::get_branches("."); // Refresh branch list
-                        debug!("Branch '{}' created and switched successfully", app_state.branch_name);
+                        debug!(
+                            "Branch '{}' created and switched successfully",
+                            app_state.branch_name
+                        );
                     }
                     app_state.ui_state = UIState::Normal; // Return to normal state
                     app_state.input_mode = InputMode::Command;
-                },
+                }
                 _ => {
                     debug!("Confirm action ignored in current UIState");
                 }
             }
-        },
-        
+        }
+
         Some(input::Action::Cancel) => {
             app_state.ui_state = UIState::Normal;
             app_state.commit_state = None;
@@ -98,10 +103,10 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 UIState::Normal => {
                     app_state.ui_state = UIState::ConfirmQuit; // Transition to ConfirmQuit state
                     debug!("Transitioned to ConfirmQuit state");
-                },
+                }
                 _ => debug!("Quit action ignored in current UIState"),
             }
-        },
+        }
         Some(input::Action::NavigateUp) => {
             match app_state.ui_state {
                 UIState::CommitDetails => {
@@ -115,7 +120,7 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 },
                 _ => {}
             }
-        },
+        }
         Some(input::Action::NavigateDown) => {
             match app_state.ui_state {
                 UIState::CommitDetails => {
@@ -129,17 +134,19 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 },
                 _ => {}
             }
-        },
+        }
         Some(input::Action::NavigateLeft) => {
-            if matches!(app_state.focused_panel, Panel::CommitLog) && app_state.horizontal_offset > 0 {
+            if matches!(app_state.focused_panel, Panel::CommitLog)
+                && app_state.horizontal_offset > 0
+            {
                 app_state.horizontal_offset -= 1;
             }
-        },
+        }
         Some(input::Action::NavigateRight) => {
             if matches!(app_state.focused_panel, Panel::CommitLog) {
                 app_state.horizontal_offset += 1; // Increase the offset to scroll right
             }
-        },
+        }
         Some(input::Action::NavigatePageUp) => match app_state.focused_panel {
             Panel::CommitLog => app_state.jump_commit_log_up(),
             Panel::Branches => app_state.jump_branches_up(),
@@ -154,7 +161,7 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
             }
             UIState::CommitMessage => {
                 app_state.ui_state = UIState::ConfirmCommit;
-            },
+            }
             UIState::ConfirmCommit => {
                 if let Some(commit_state) = &app_state.commit_state {
                     match git_commands::commit_and_push(".", &commit_state.message) {
@@ -169,24 +176,22 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                         }
                     }
                 }
-            },
+            }
             UIState::Normal => {
                 match app_state.focused_panel {
-
                     Panel::CommitLog => {
                         let selected_commit = &app_state.commit_log[app_state.selected_index];
                         let commit_hash = selected_commit.split(" | ").next().unwrap_or("");
-        
+
                         match git_commands::get_commit_details(".", commit_hash) {
                             Ok(details) => {
                                 app_state.set_selected_commit_details(details);
                                 app_state.ui_state = UIState::CommitDetails; // Transition to CommitDetails state
                                 debug!("Showing commit details");
-                            },
+                            }
                             Err(err) => {
                                 debug!("Error fetching commit details: {}", err);
                             }
-        
                         }
                     }
                     Panel::Branches => {
@@ -194,8 +199,8 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                         match crate::git_commands::checkout_branch(".", &selected_branch) {
                             Ok(_) => {
                                 app_state.commit_log = crate::git_commands::get_commit_log("."); // Refresh commit log
-                                app_state.branches = crate::git_commands::get_branches(".");     // Refresh branch list
-                                app_state.branch_name = selected_branch.clone();                // Update the current branch
+                                app_state.branches = crate::git_commands::get_branches("."); // Refresh branch list
+                                app_state.branch_name = selected_branch.clone(); // Update the current branch
                                 debug!("Switched to branch: {}", selected_branch);
                             }
                             Err(err) => {
@@ -206,7 +211,7 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                         }
                     }
                 }
-            },
+            }
             UIState::ConfirmMerge => {
                 // Determine the target branch (main or master)
                 let target_branch = if app_state.branches.contains(&"main".to_string()) {
@@ -214,11 +219,14 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 } else {
                     "master"
                 };
-            
+
                 // Attempt to merge into the target branch
                 match git_commands::merge_into_branch(".", target_branch) {
                     Ok(_) => {
-                        debug!("Successfully merged the current branch into '{}'", target_branch);
+                        debug!(
+                            "Successfully merged the current branch into '{}'",
+                            target_branch
+                        );
                         app_state.commit_log = git_commands::get_commit_log("."); // Refresh commit log
                         app_state.ui_state = UIState::Normal; // Return to normal state after merging
                         app_state.error_message = None; // Clear any previous error messages
@@ -229,10 +237,9 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                         app_state.error_message = Some(err); // Store the error message
                     }
                 }
-            },
-            
+            }
+
             _ => {}
-            
         },
         Some(input::Action::SwitchPanel) => {
             app_state.focus_next_panel();
@@ -242,7 +249,7 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
             app_state.branches = crate::git_commands::get_branches(".");
             app_state.selected_index = 0;
             app_state.selected_branch = 0;
-        },
+        }
         // Handle Deselect (Esc key) for canceling actions
         Some(input::Action::Deselect) => match app_state.ui_state {
             UIState::ConfirmQuit => {
@@ -253,33 +260,34 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 app_state.ui_state = UIState::Normal; // Cancel workflow
                 app_state.commit_state = None;
                 debug!("Workflow cancelled");
-            },
-             UIState::CommitDetails => {
+            }
+            UIState::CommitDetails => {
                 app_state.ui_state = UIState::Normal; // Return to normal state
                 debug!("Exited commit details view");
-             },
-             UIState::KeyGuide => {
+            }
+            UIState::KeyGuide => {
                 app_state.ui_state = UIState::Normal; // Return to normal state
                 debug!("Exited key guide view");
-             },
-             UIState::ConfirmMerge => {
+            }
+            UIState::ConfirmMerge => {
                 app_state.ui_state = UIState::Normal;
-             },
-             UIState::Error => {
+            }
+            UIState::Error => {
                 app_state.ui_state = UIState::Normal; // Return to Normal state
-                app_state.error_message = None;      // Clear the error message
-             },
+                app_state.error_message = None; // Clear the error message
+            }
             _ => {}
         },
 
         Some(input::Action::CommitWork) => {
             if app_state.ui_state == UIState::Normal {
                 app_state.ui_state = UIState::CommitMessage;
-                app_state.commit_state = Some(CommitState { message: String::new() });
+                app_state.commit_state = Some(CommitState {
+                    message: String::new(),
+                });
                 app_state.input_mode = InputMode::Text;
             }
-
-        },
+        }
 
         Some(input::Action::CreateBranch) => {
             if app_state.ui_state == UIState::Normal {
@@ -287,10 +295,10 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 app_state.input_mode = InputMode::Text;
                 app_state.branch_name = String::new();
             }
-        },
+        }
         Some(input::Action::ShowKeyGuide) => {
             app_state.ui_state = UIState::KeyGuide;
-        },
+        }
         Some(input::Action::MergeBranch) => {
             app_state.ui_state = UIState::ConfirmMerge;
         }
