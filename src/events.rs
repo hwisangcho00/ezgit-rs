@@ -2,6 +2,7 @@ use crate::app_state::{AppState, CommitState, InputMode, Panel, UIState};
 use crate::{git_commands, input};
 use log::debug;
 
+
 pub fn handle_event(app_state: &mut AppState) -> Result<bool, std::io::Error> {
     match app_state.input_mode {
         InputMode::Command => handle_command_mode(app_state),
