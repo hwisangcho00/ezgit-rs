@@ -44,6 +44,7 @@ pub struct AppState {
     pub commit_state: Option<CommitState>,
     pub commit_details_visible_range: (usize, usize),
     pub commit_details_total_lines: usize,
+    pub commit_details_visible_count: usize,
     pub input_mode: InputMode,
     pub branch_name: String,
     pub error_message: Option<String>,
@@ -85,6 +86,7 @@ impl AppState {
             commit_state: None,
             commit_details_visible_range: (0, 0),
             commit_details_total_lines: 0,
+            commit_details_visible_count: 10,
             input_mode: InputMode::Command,
             branch_name: current_branch,
             error_message: None,
@@ -169,8 +171,9 @@ impl AppState {
     }
 
     pub fn update_commit_details_visible_range(&mut self, chunk_height: usize) {
+        self.commit_details_visible_count = chunk_height; // Set the number of visible lines
         let (start, _) = self.commit_details_visible_range;
-        let end = usize::min(start + chunk_height, self.commit_details_total_lines);
+        let end = usize::min(start + self.commit_details_visible_count, self.commit_details_total_lines);
         self.commit_details_visible_range = (start, end);
     }
 
@@ -223,6 +226,24 @@ impl AppState {
             self.selected_branch =
                 usize::min(self.selected_branch + page_size, self.branches.len() - 1);
             self.update_branch_visible_range();
+        }
+    }
+
+    // Scroll the commit details up by a page
+    pub fn page_up_commit_details(&mut self, lines_per_page: usize) {
+        let (start, end) = self.commit_details_visible_range;
+        if start > 0 {
+            let new_start = start.saturating_sub(lines_per_page);
+            self.commit_details_visible_range = (new_start, new_start + (end - start));
+        }
+    }
+
+    // Scroll the commit details down by a page
+    pub fn page_down_commit_details(&mut self, lines_per_page: usize) {
+        let (start, end) = self.commit_details_visible_range;
+        if end < self.commit_details_total_lines {
+            let new_end = usize::min(end + lines_per_page, self.commit_details_total_lines);
+            self.commit_details_visible_range = (new_end - (end - start), new_end);
         }
     }
 }
