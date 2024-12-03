@@ -178,6 +178,10 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 UIState::CommitDetails => {
                     app_state.page_up_commit_details(app_state.commit_details_visible_count);
                 }
+                UIState::Normal => match app_state.focused_panel {
+                    Panel::CommitLog => app_state.jump_commit_log_up(),
+                    Panel::Branches => app_state.jump_branches_up(),
+                },
                 _ => {} // Ignore for other UI states
             }
         }
@@ -186,6 +190,10 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 UIState::CommitDetails => {
                     app_state.page_down_commit_details(app_state.commit_details_visible_count);
                 }
+                UIState::Normal => match app_state.focused_panel {
+                    Panel::CommitLog => app_state.jump_commit_log_down(),
+                    Panel::Branches => app_state.jump_branches_down(),
+                },
                 _ => {} // Ignore for other UI states
             }
         }
