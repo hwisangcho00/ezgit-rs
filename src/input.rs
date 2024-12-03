@@ -7,6 +7,8 @@ pub enum Action {
     NavigateDown,
     NavigateLeft,
     NavigateRight,
+    NavigatePageUp,
+    NavigatePageDown,
     Select,
     SwitchPanel,
     Deselect,
@@ -42,6 +44,8 @@ pub fn handle_user_input(is_text_mode: bool) -> Result<Option<Action>, std::io::
                     KeyCode::Down => Some(Action::NavigateDown),
                     KeyCode::Left => Some(Action::NavigateLeft),
                     KeyCode::Right => Some(Action::NavigateRight),
+                    KeyCode::PageUp => Some(Action::NavigatePageUp),
+                    KeyCode::PageDown => Some(Action::NavigatePageDown),
                     KeyCode::Enter => Some(Action::Select),
                     KeyCode::Tab => Some(Action::SwitchPanel), // Switch between Commit Log and Branches
                     KeyCode::Esc => Some(Action::Deselect),

@@ -140,6 +140,14 @@ pub fn handle_command_mode(app_state: &mut AppState) -> Result<bool, std::io::Er
                 app_state.horizontal_offset += 1; // Increase the offset to scroll right
             }
         },
+        Some(input::Action::NavigatePageUp) => match app_state.focused_panel {
+            Panel::CommitLog => app_state.jump_commit_log_up(),
+            Panel::Branches => app_state.jump_branches_up(),
+        },
+        Some(input::Action::NavigatePageDown) => match app_state.focused_panel {
+            Panel::CommitLog => app_state.jump_commit_log_down(),
+            Panel::Branches => app_state.jump_branches_down(),
+        },
         Some(input::Action::Select) => match app_state.ui_state {
             UIState::ConfirmQuit => {
                 return Ok(true); // Exit the program

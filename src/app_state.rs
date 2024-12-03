@@ -185,4 +185,36 @@ impl AppState {
         }
     }
 
+    pub fn jump_commit_log_up(&mut self) {
+        let page_size = self.visible_count; // Number of items visible per page
+        if self.selected_index > 0 {
+            self.selected_index = self.selected_index.saturating_sub(page_size);
+            self.update_visible_range();
+        }
+    }
+    
+    pub fn jump_commit_log_down(&mut self) {
+        let page_size = self.visible_count; // Number of items visible per page
+        if self.selected_index < self.commit_log.len() - 1 {
+            self.selected_index = usize::min(self.selected_index + page_size, self.commit_log.len() - 1);
+            self.update_visible_range();
+        }
+    }
+
+    pub fn jump_branches_up(&mut self) {
+        let page_size = self.branch_visible_count;
+        if self.selected_branch > 0 {
+            self.selected_branch = self.selected_branch.saturating_sub(page_size);
+            self.update_branch_visible_range();
+        }
+    }
+    
+    pub fn jump_branches_down(&mut self) {
+        let page_size = self.branch_visible_count;
+        if self.selected_branch < self.branches.len() - 1 {
+            self.selected_branch = usize::min(self.selected_branch + page_size, self.branches.len() - 1);
+            self.update_branch_visible_range();
+        }
+    }
+
 }
