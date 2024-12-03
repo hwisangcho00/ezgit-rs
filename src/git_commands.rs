@@ -4,7 +4,7 @@ use git2::{
     Signature,
 };
 use std::{
-    collections::HashSet,
+    collections::HashMap,
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -138,47 +138,36 @@ pub fn get_commit_details(repo_path: &str, commit_hash: &str) -> Result<String, 
 
     let mut added = 0;
     let mut deleted = 0;
-    let mut file_changes: HashSet<String> = HashSet::new(); // Use HashSet for unique file changes
+    let mut changes_by_file = HashMap::new();
 
     diff.print(git2::DiffFormat::Patch, |delta, _hunk, line| {
-        // Track unique file-level changes
-        match delta.status() {
-            git2::Delta::Modified => {
-                file_changes.insert(format!(
-                    "Modified: {}",
-                    delta
-                        .old_file()
-                        .path()
-                        .unwrap_or_else(|| Path::new(""))
-                        .display()
-                ));
-            }
-            git2::Delta::Added => {
-                file_changes.insert(format!(
-                    "Added: {}",
-                    delta
-                        .new_file()
-                        .path()
-                        .unwrap_or_else(|| Path::new(""))
-                        .display()
-                ));
-            }
-            git2::Delta::Deleted => {
-                file_changes.insert(format!(
-                    "Deleted: {}",
-                    delta
-                        .old_file()
-                        .path()
-                        .unwrap_or_else(|| Path::new(""))
-                        .display()
-                ));
-            }
-            _ => {}
-        }
-        // Track line-level changes
+        let file_path = delta
+            .new_file()
+            .path()
+            .unwrap_or_else(|| delta.old_file().path().unwrap_or(Path::new("unknown")))
+            .display()
+            .to_string();
+        let entry = changes_by_file.entry(file_path).or_insert_with(Vec::new);
+
+        let content = String::from_utf8_lossy(line.content()).trim().to_string(); // Trim whitespace
+
         match line.origin() {
-            '+' => added += 1,
-            '-' => deleted += 1,
+            '+' => {
+                added += 1;
+                entry.push(format!(
+                    "+{:4} {}",
+                    line.new_lineno().unwrap_or(0),
+                    content
+                ));
+            }
+            '-' => {
+                deleted += 1;
+                entry.push(format!(
+                    "-{:4} {}",
+                    line.old_lineno().unwrap_or(0),
+                    content
+                ));
+            }
             _ => {}
         }
         true
@@ -186,8 +175,15 @@ pub fn get_commit_details(repo_path: &str, commit_hash: &str) -> Result<String, 
     .map_err(|e| e.to_string())?;
 
     // Prepare the output details
+    let mut changes_output = String::new();
+    for (file, changes) in changes_by_file {
+        changes_output.push_str(&format!("\nFile: {}\n", file));
+        changes_output.push_str(&changes.join("\n"));
+        changes_output.push_str("\n\n-----------------------------\n");
+    }
+
     let details = format!(
-        "Commit Hash: {}\nAuthor: {} <{}>\nDate: {}\nElapsed Time: {}\n\nMessage:\n{}\n\nParent(s):\n{}\n\nChanges:\n{}\n- Lines Added: {}\n- Lines Deleted: {}",
+        "Commit Hash: {}\nAuthor: {} <{}>\nDate: {}\nElapsed Time: {}\n\nMessage:\n{}\n\nParent(s):\n{}\n\nChanges:\n- Lines Added: {}\n- Lines Deleted: {}\n\nDiff:\n{}",
         commit.id(),
         commit.author().name().unwrap_or("Unknown"),
         commit.author().email().unwrap_or("Unknown"),
@@ -195,9 +191,9 @@ pub fn get_commit_details(repo_path: &str, commit_hash: &str) -> Result<String, 
         elapsed_time,
         commit.message().unwrap_or("No message"),
         parents.join("\n"),
-        file_changes.into_iter().collect::<Vec<_>>().join("\n"),
         added,
-        deleted
+        deleted,
+        changes_output
     );
 
     Ok(details)
